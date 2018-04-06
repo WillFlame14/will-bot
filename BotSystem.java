@@ -1,7 +1,6 @@
 package bot.willbot;
 
 import java.util.ArrayList;
-import java.util.Set;
 import net.dv8tion.jda.core.entities.MessageChannel;
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
 
@@ -18,7 +17,7 @@ public class BotSystem implements Category{
                 c.sendMessage(Bot.helpEmbed).queue();
                 break;
             case "w!ping":
-                c.sendMessage("Pong!").queue();
+                c.sendMessage("Pong! Time: " + Utilities.bold(Bot.jda.getPing() + " ms")).queue();
                 break;
             case "w!roll":
                 c.sendMessage("🎲You rolled a: " + (int)((Math.random() * 6) + 1)).queue();

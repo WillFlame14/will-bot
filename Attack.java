@@ -1,13 +1,13 @@
 package bot.willbot;
 
-import java.util.ArrayList;
+import java.util.*;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.entities.MessageChannel;
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
 
 public abstract class Attack implements Category{
-    static boolean userdouble, enemydouble, userSkill, enemySkill, stratum;
-    static int userCritChance, enemyCritChance, playerDmg, enemyDmg;
+    static boolean playerdouble, enemydouble, playerSkill, enemySkill, stratum;
+    static int playerCritChance, enemyCritChance, playerDmg, enemyDmg, playerHitChance, enemyHitChance, pAttackSpeed, eAttackSpeed, pAttackSkill, eAttackSkill;
     static String levelup = "";
     static Player player, enemy;
     MessageChannel c;
@@ -19,6 +19,10 @@ public abstract class Attack implements Category{
     protected EmbedBuilder battleCalc(Player p, Player e, boolean physical) {
         player = p;
         enemy = e;
+        pAttackSpeed = player.stats.spd + ((player.stats.str - player.weapon.wt < 0) ? 0 : (player.stats.str - player.weapon.wt));
+        eAttackSpeed = enemy.stats.spd + ((enemy.stats.str - enemy.weapon.wt < 0) ? 0 : (enemy.stats.str - enemy.weapon.wt));
+        pAttackSkill = player.stats.skl;
+        eAttackSkill = enemy.stats.skl;
         EmbedBuilder battleCalc = new EmbedBuilder();
         int triangle = 0;
         String arrow1 = "", arrow2 = "";
@@ -60,16 +64,17 @@ public abstract class Attack implements Category{
                 }
                 break;
         }
-        userCritChance = player.stats.lck + triangle - enemy.stats.lck;
-        enemyCritChance = enemy.stats.lck - triangle - player.stats.lck;
-        if(userCritChance < 0) {
-            userCritChance = 0;
+        playerCritChance = (player.stats.skl / 2) + player.weapon.crt - enemy.stats.lck;
+        enemyCritChance = (enemy.stats.skl / 2) + enemy.weapon.crt - player.stats.lck;
+        if(playerCritChance < 0) {
+            playerCritChance = 0;
         }
         if(enemyCritChance < 0) {
             enemyCritChance = 0;
         }
-        playerDmg = physical?player.stats.str - enemy.stats.def : player.stats.mag - enemy.stats.res;
-        enemyDmg = enemyDmg = physical?enemy.stats.str - player.stats.def : enemy.stats.mag - player.stats.res;
+        
+        playerDmg = physical?player.stats.str - enemy.stats.def : player.stats.mag - enemy.stats.res + (triangle / 10);
+        enemyDmg = enemyDmg = physical?enemy.stats.str - player.stats.def : enemy.stats.mag - player.stats.res - (triangle / 10);
         if(playerDmg < 0) {
             playerDmg = 0;
         }
@@ -77,28 +82,27 @@ public abstract class Attack implements Category{
             enemyDmg = 0;
         }
         
-        int userResolve1 = 0, userResolve2 = 0, enemyResolve1 = 0, enemyResolve2 = 0;      //the bonuses from Resolve
-        boolean userHighlght = false, enemyHighlight = false;
-        userSkill = player.activateSkill();
+        boolean playerHighlight = false, enemyHighlight = false;
+        playerSkill = player.activateSkill();
         enemySkill = enemy.activateSkill();
         
-        if(userSkill) {
+        if(playerSkill) {
             switch (player.skill) {
                 case Crit15:
-                    userCritChance += 15;
-                    userHighlght = true;
+                    playerCritChance += 15;
+                    playerHighlight = true;
                     break;
+                case Fortune:
+                    enemyCritChance = 0;
+                    playerHighlight = true;
                 case Resolve:
-                    int oldSpd = player.stats.spd, oldSkl = player.stats.skl;
-                    player.stats.spd *= 1.5;
-                    player.stats.skl *= 1.5;
-                    userResolve1 = player.stats.spd - oldSpd;
-                    userResolve2 = player.stats.skl - oldSkl;
-                    userHighlght = true;
+                    pAttackSpeed *= 1.5;
+                    pAttackSkill *= 1.5;
+                    playerHighlight = true;
                     break;
                 case Wrath:
-                    userCritChance += 50;
-                    userHighlght = true;
+                    playerCritChance += 50;
+                    playerHighlight = true;
                     break;
             }
         }
@@ -109,12 +113,12 @@ public abstract class Attack implements Category{
                     enemyCritChance += 15;
                     enemyHighlight = true;
                     break;
+                case Fortune:
+                    enemyCritChance = 0;
+                    enemyHighlight = true;
                 case Resolve:
-                    int oldSpd = enemy.stats.spd, oldSkl = enemy.stats.skl;
-                    enemy.stats.spd *= 1.5;
-                    enemy.stats.skl *= 1.5;
-                    enemyResolve1 = enemy.stats.spd - oldSpd;
-                    enemyResolve2 = enemy.stats.skl - oldSkl;
+                    eAttackSpeed *= 1.5;
+                    eAttackSkill *= 1.5;
                     enemyHighlight = true;
                     break;
                 case Wrath:
@@ -123,172 +127,173 @@ public abstract class Attack implements Category{
                     break;
             }
         }
-        
-        userdouble = (player.stats.spd - enemy.stats.spd > 3);
-        enemydouble = (enemy.stats.spd - player.stats.spd > 3);
+        playerHitChance = (player.stats.skl * 2 + player.stats.lck + player.weapon.accuracy) - (eAttackSpeed * 2 + enemy.stats.lck) + triangle;
+        enemyHitChance = (enemy.stats.skl * 2 + enemy.stats.lck + enemy.weapon.accuracy) - (pAttackSpeed * 2 + player.stats.lck) - triangle;
+        if(playerHitChance < 0) 
+            playerHitChance = 0;
+        if(enemyHitChance < 0) 
+            enemyHitChance = 0;
+        playerdouble = (pAttackSpeed - eAttackSpeed > 3);
+        enemydouble = (eAttackSpeed - pAttackSpeed > 3);
         
         String username = player.username, enemyname = enemy.username;
         battleCalc.setTitle(Utilities.bold(username) + " vs. " + Utilities.bold(enemyname), null);
         battleCalc.setDescription("==============================");
-        battleCalc.addField(Utilities.bold(username) + " " + arrow1, "Lv: " + player.stats.lvl
-                + "\nHP: " + player.stats.chp + "/" + player.stats.thp
-                + "\nWeapon: " + player.weapon.displayName
-                + "\nSkill: " + (userHighlght?Utilities.highlight(player.skill.displayName):player.skill.displayName)
-                + "\nDamage: " + playerDmg + (userdouble?"x2":"")
-                + "\nCritical: " + userCritChance + "%", true);
-        battleCalc.addField(Utilities.bold(enemyname) + " " + arrow2, "Lv: " + enemy.stats.lvl
-                + "\nHP: " + enemy.stats.chp + "/" + enemy.stats.thp
-                + "\nWeapon: " + enemy.weapon.displayName
-                + "\nSkill: " + (enemyHighlight?Utilities.highlight(enemy.skill.displayName):enemy.skill.displayName)
-                + "\nDamage: " + enemyDmg + (enemydouble?"x2":"")
-                + "\nCritical: " + enemyCritChance + "%", true);
+        battleCalc.addField(Utilities.bold(username) + " " + arrow1, "**Lv:** " + player.stats.lvl
+                + "\n**HP:** " + player.stats.chp + "/" + player.stats.thp
+                + "\n**Weapon:** " + player.weapon.displayName
+                + "\n**Skill:** " + (playerHighlight?Utilities.highlight(player.skill.displayName):player.skill.displayName)
+                + "\n**Damage:** " + playerDmg + (playerdouble?(player.weapon.displayName.contains("Brave")?"x4":"x2"):(player.weapon.displayName.contains("Brave")?"x2":""))
+                + "\n**Hit:** " + playerHitChance + "%" 
+                + "\n**Critical:** " + playerCritChance + "%", true);
+        battleCalc.addField(Utilities.bold(enemyname) + " " + arrow2, "**Lv:** " + enemy.stats.lvl
+                + "\n**HP:** " + enemy.stats.chp + "/" + enemy.stats.thp
+                + "\n**Weapon:** " + enemy.weapon.displayName
+                + "\n**Skill:** " + (enemyHighlight?Utilities.highlight(enemy.skill.displayName):enemy.skill.displayName)
+                + "\n**Damage:** " + enemyDmg + (enemydouble?(enemy.weapon.displayName.contains("Brave")?"x4":"x2"):(enemy.weapon.displayName.contains("Brave")?"x2":""))
+                + "\n**Hit:** " + enemyHitChance + "%" 
+                + "\n**Critical:** " + enemyCritChance + "%", true);
         battleCalc.setFooter("Use `w!confirm` to confirm.", null);
-        
-        if(userResolve2 != 0) {       //subtract the stats gained from Resolve- SKL must be checked as Spd has the potential to be 0
-            player.stats.spd -= userResolve1;
-            player.stats.skl -= userResolve2;
-        }
-        else if(enemyResolve2 != 0) {       //subtract the stats gained from Resolve- SKL must be checked as Spd has the potential to be 0
-            enemy.stats.spd -= enemyResolve1;
-            enemy.stats.skl -= enemyResolve2;
-        }
         return battleCalc;
     }
     
     protected EmbedBuilder battleResult() {
         String username = player.username, enemyname = enemy.username, battleText = "";
-        Skill uSkill = (userSkill?player.skill:Skill.NA), eSkill = (enemySkill?enemy.skill:Skill.NA);
-        boolean userCrit, enemyCrit;
+        Skill uSkill = (playerSkill?player.skill:Skill.NA), eSkill = (enemySkill?enemy.skill:Skill.NA);
+        LinkedList<Integer> order = new LinkedList<>();
         
         EmbedBuilder battleResult = new EmbedBuilder();
         battleResult.setTitle(Utilities.bold(username) + " vs. " + Utilities.bold(enemyname));
         
-        //CALCULATING SKILLS - Note that Crit15, Resolve and Wrath are already incorporated
+        //CALCULATING SKILLS - Note that Crit15, Fortune, Resolve and Wrath are already incorporated
         
-        //VANTAGE ROUND
-        if(eSkill == Skill.Vantage) {       //then enemy cannot have Cancel
-            enemyCrit = enemyCritChance > Math.random() * 100;
-            battleText += "\n" + Utilities.bold(enemyname) + " attacked " + Utilities.bold(username) + "!" + (enemyCrit ? " Critical Hit!" : "")
-                    + "\nDealt " + "**" + enemyDmg * (enemyCrit?3:1) + "** damage.";
-            player.stats.chp -= enemyDmg * (enemyCrit?3:1);
-            if (player.stats.chp < 1) {
-                player.stats.chp = 0;
-                battleText += getResults();
-                battleResult.addField("==============================", battleText, true);
-                return battleResult;
+        //CALCULATING ORDER
+        if(eSkill == Skill.Vantage) {
+            order.add(checkHit(enemyHitChance)?-1:-2);
+        }
+        order.add(checkHit(playerHitChance)?1:2);
+        if(uSkill == Skill.Adept || player.weapon.displayName.contains("Brave")) {
+            order.add(checkHit(playerHitChance)?1:2);
+        }
+        if(uSkill != Skill.Cancel) {
+            order.add(checkHit(enemyHitChance)?-1:-2);
+            if(eSkill == Skill.Adept || enemy.weapon.displayName.contains("Brave")) {
+                order.add(checkHit(enemyHitChance)?-1:-2);
             }
         }
-        
-        boolean repeat = true;      //pretend Adept is on until it's not
-        
-        //ROUND 1
-        while(repeat) {
-            userCrit = userCritChance > Math.random() * 100;
-            battleText = Utilities.bold(username) + " attacked " + Utilities.bold(enemyname) + "!" + (userCrit?" Critical Hit!":"")
-                    + "\nDealt " + "**" + playerDmg * (userCrit?3:1) + "** damage.";
-            enemy.stats.chp -= playerDmg * (userCrit?3:1);
-            if(enemy.stats.chp < 1) {
-                enemy.stats.chp = 0;
-                battleText += getResults();
-                battleResult.addField("==============================", battleText, true);
-                return battleResult;
-            }
-            repeat = false;
-            if(uSkill == Skill.Adept) {
-                battleText += "\n\n" + username + "'s " + Utilities.bold("Adept") + "activated!\n";
-                repeat = true;
-            }
-        }
-        
-        repeat = true;
-        
-        if(uSkill != Skill.Cancel) {        //can be Cancel-ed, which overrides Adept
-            while(repeat) {
-                enemyCrit = enemyCritChance > Math.random() * 100;
-                battleText += "\n" + Utilities.bold(enemyname) + " attacked " + Utilities.bold(username) + "!" + (enemyCrit?" Critical Hit!":"")
-                    + "\nDealt " + "**" + enemyDmg * (enemyCrit?3:1) + "** damage.";
-                player.stats.chp -= enemyDmg * (enemyCrit?3:1);
-                if(player.stats.chp < 1) {
-                    player.stats.chp = 0;
-                    battleText += getResults();
-                    battleResult.addField("==============================", battleText, true);
-                    return battleResult;
-                }
-                repeat = false;
-                if(eSkill == Skill.Adept) {
-                    battleText += "\n\n" + enemyname + "'s " + Utilities.bold("Adept") + "activated!\n";
-                    repeat = true;
-                }
-            }
-        }
-        else {
-            battleText += "\n\n" + Utilities.bold(username) + "'s Cancel activated!\n";
-        }
-        
-        repeat = true;
         //ROUND 2- Skills must be re-RNG'd, but only if they double and are not Cancel-ed
-        
-        if(userdouble) {
-            if(eSkill != Skill.Cancel && uSkill != Skill.Cancel) {        //can be Cancel-ed from previous round, but only if their counter wasn't Cancel-ed
-                //chance for Skills (not Crit15, Resolve or Wrath) to activate again
-                if(!player.activateSkill()) {
+        if(playerdouble && (eSkill != Skill.Cancel || order.get(order.size() - 1) == 1)) {     //if true, user activated Cancel on enemy and did not miss
+            if(!player.activateSkill()) {
                     uSkill = Skill.NA;      //if player cannot re-activate their skill, turn it off
                 }
-                while(repeat) {
-                    userCrit = userCritChance > Math.random() * 100;        //reroll crits
-                    battleText += "\n" + Utilities.bold(username) + " attacked " + Utilities.bold(enemyname) + "!" + (userCrit ? " Critical Hit!" : "")
-                            + "\nDealt " + "**" + playerDmg * (userCrit?3:1) + "** damage.";
-                    enemy.stats.chp -= playerDmg * (userCrit?3:1);
-                    if (enemy.stats.chp < 1) {
-                        enemy.stats.chp = 0;
-                        battleText += getResults();
-                        battleResult.addField("==============================", battleText, true);
-                        return battleResult;
-                    }
-                    repeat = false;
-                    if(uSkill == Skill.Adept) {
-                        battleText += "\n\n" + username + "'s " + Utilities.bold("Adept") + "activated!\n";
-                        repeat = true;
-                    }
-                }
-            }
-            else {
-                battleText += "\n\n" + Utilities.bold(enemyname) + "'s Cancel activated!\n";
+            order.add(checkHit(playerHitChance)?1:2);
+            if(uSkill == Skill.Adept || player.weapon.displayName.contains("Brave")) {
+                order.add(checkHit(playerHitChance)?1:2);
             }
         }
-        else {
-            uSkill = Skill.NA;      //if no double, uSkill stops
+        if(enemydouble && (uSkill != Skill.Cancel || order.get(order.size() - 1) == -1)) {    //if true, enemy activated Cancel on user's double and did not miss   
+            if(!enemy.activateSkill()) {
+                    eSkill = Skill.NA;      //if player cannot re-activate their skill, turn it off
+                }
+            order.add(checkHit(enemyHitChance)?-1:-2);
+            if(eSkill == Skill.Adept || enemy.weapon.displayName.contains("Brave")) {
+                order.add(checkHit(enemyHitChance)?-1:-2);
+            }
         }
         
-        repeat = true;
-        
-        if(enemydouble) {     
-            if(uSkill != Skill.Cancel) {        //uSkill has already been updated
-                while(repeat) {
-                    enemyCrit = enemyCritChance > Math.random() * 100;      //reroll crits
-                    battleText += "\n" + Utilities.bold(enemyname) + " attacked " + Utilities.bold(username) + "!" + (enemyCrit ? " Critical Hit!" : "")
-                            + "\nDealt " + "**" + enemyDmg * (enemyCrit?3:1) + "** damage.";
-                    player.stats.chp -= enemyDmg * (enemyCrit?3:1);
-                    if (player.stats.chp < 1) {
-                        player.stats.chp = 0;
-                        battleText += getResults();
-                        battleResult.addField("==============================", battleText, true);
-                        return battleResult;
+        Skill skill;
+        for(int i = 0; i < order.size(); i++) {
+            skill = Skill.NA;
+            if(null != order.get(i)) switch (order.get(i)) {
+                case 1:
+                    if(i > 0 && order.get(i - 1) == 1 && !player.weapon.displayName.contains("Brave")) {     //user just attacked, and it wasn't because of Brave
+                        skill = player.skill;
                     }
-                    repeat = false;
-                    if(eSkill == Skill.Adept) {
-                        battleText += "\n\n" + enemyname + "'s " + Utilities.bold("Adept") + "activated!\n";
-                        repeat = true;
+                    if(i > 0 && order.get(i - 1) == -1) {       //if it was just enemy phase
+                        battleText += "\n";
                     }
-                }
+                    battleText = playerAttack(battleText, username, enemyname, skill);
+                    break;
+                case 2:
+                    battleText += "\n\n" + username + " missed!\n";
+                    break;
+                case -1:
+                    if(i > 0 && order.get(i - 1) == -1 && !enemy.weapon.displayName.contains("Brave")) {     //enemy just attacked, and it wasn't because of Brave
+                        skill = enemy.skill;
+                    }   
+                    if(i > 0 && order.get(i - 1) == 1) {       //if it was just player phase
+                        battleText += "\n";
+                    }
+                    battleText = enemyAttack(battleText, enemyname, username, skill);
+                    break;
+                case -2:
+                    battleText += "\n\n" + enemyname + " missed!\n";
+                    break;
+                default:
+                    break;
             }
-            else {
-                battleText += "\n\n" + Utilities.bold(username) + "'s Cancel activated!\n";
+            if(checkDeath(battleText, battleResult)) {
+                return battleResult;
             }
         }
+        
         battleText += getResults();
         battleResult.addField("==============================", battleText, true);
         return battleResult;
+    }
+    
+    private boolean checkHit(int hitChance) {
+        return Math.random() * 100 < hitChance;
+    }
+
+    private boolean checkDeath(String battleText, EmbedBuilder battleResult) {
+        if (player.stats.chp < 1) {
+            player.stats.chp = 0;
+            battleText += getResults();
+            battleResult.addField("==============================", battleText, true);
+            return true;
+        }
+        else if (enemy.stats.chp < 1) {
+            enemy.stats.chp = 0;
+            battleText += getResults();
+            battleResult.addField("==============================", battleText, true);
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+    private String playerAttack(String battleText, String username, String enemyname, Skill skill) {
+        boolean userCrit;
+        userCrit = playerCritChance > Math.random() * 100;        //roll crits
+        if(enemy.activateSkill() && enemy.skill == Skill.Pavise) {
+            playerDmg = 0;
+            battleText += "\n\n" + enemy.username + "'s Pavise activated!\n";
+        }
+        if(skill != Skill.NA) {     //some skill activated
+            battleText += "\n\n" + username + "'s " + Utilities.bold(skill.displayName) + " activated!\n";
+        }
+        battleText += "\n" + Utilities.bold(username) + " attacked " + Utilities.bold(enemyname) + "!" + (userCrit ? " Critical Hit!" : "")
+                + "\nDealt " + "**" + playerDmg * (userCrit?3:1) + "** damage.";
+        enemy.stats.chp -= playerDmg * (userCrit?3:1);
+        return battleText;
+    }
+
+    private String enemyAttack(String battleText, String enemyname, String username, Skill skill) {
+        boolean enemyCrit;
+        enemyCrit = enemyCritChance > Math.random() * 100;
+        if(player.activateSkill() && player.skill == Skill.Pavise) {
+            enemyDmg = 0;
+            battleText += "\n\n" + player.username + "'s Pavise activated!\n";
+        }
+        if(skill != Skill.NA) {     //some skill activated
+            battleText += "\n\n" + enemyname + "'s " + Utilities.bold(skill.displayName) + " activated!\n";
+        }
+        battleText += "\n" + Utilities.bold(enemyname) + " attacked " + Utilities.bold(username) + "!" + (enemyCrit ? " Critical Hit!" : "")
+                + "\nDealt " + "**" + enemyDmg * (enemyCrit?3:1) + "** damage.";
+        player.stats.chp -= enemyDmg * (enemyCrit?3:1);
+        return battleText;
     }
     
     protected static String getResults() {
@@ -296,20 +301,20 @@ public abstract class Attack implements Category{
                 + "\n" + Utilities.bold(enemy.username) + " has **" + enemy.stats.chp + "/" + enemy.stats.thp + " HP**!";
         if(player.stats.chp < 1) {
             results += "\n\n" + Utilities.bold(enemy.username) + " is victorious!";
-            enemy.stats.xp += Utilities.xpGained(enemy, player);
-            if(enemy.stats.xp >= Utilities.getXpLevelUp(enemy.stats.lvl)) {
+            enemy.stats.xp += Utilities.xpGained(enemy, player) * (enemy.skill == Skill.Paragon?2:1);
+            if(enemy.stats.xp >= Utilities.getXpLevelUp(enemy.stats.lvl) && enemy.stats.lvl < 40) {
                 levelup = enemy.username;
                 enemy.stats.xp = 0;
             }
         }
         else if(enemy.stats.chp < 1) {
             results += "\n\n" + Utilities.bold(player.username) + " is victorious!";
-            player.stats.xp += Utilities.xpGained(player, enemy);
+            player.stats.xp += Utilities.xpGained(player, enemy) * (player.skill == Skill.Paragon?2:1);
             
             if(enemy.username.contains("Fighter")){
                 Bot.playermap.remove(enemy.username, enemy);
             }
-            if(player.stats.xp >= Utilities.getXpLevelUp(player.stats.lvl)) {
+            if(player.stats.xp >= Utilities.getXpLevelUp(player.stats.lvl) && player.stats.lvl < 40) {
                 levelup = player.username;
                 player.stats.xp = 0;
             }

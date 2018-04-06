@@ -127,17 +127,23 @@ class Growths{
         }
         skl = (int)(Math.random() * 81) + 5;
         lck = (int)(Math.random() * 81) + 5;
-        if(str + mag + spd + def + res + skl + lck > 395) {
-            str -= 10+ (int)(Math.random() * 16);
-            mag -= 10+ (int)(Math.random() * 16);
-            def -= 10+ (int)(Math.random() * 16);
-            res -= 10+ (int)(Math.random() * 16);
+        while(str + mag + spd + def + res + skl + lck > 395) {
+            str -= 5 + (int)(Math.random() * 16);
+            mag -= 5 + (int)(Math.random() * 16);
+            spd -= 5 + (int)(Math.random() * 16);
+            def -= 5 + (int)(Math.random() * 16);
+            res -= 5 + (int)(Math.random() * 16);
+            skl -= 5 + (int)(Math.random() * 16);
+            lck -= 5 + (int)(Math.random() * 16);
         }
-        if(str + mag + spd + def + res + skl + lck < 300) {
-            str += 10 + (int)(Math.random() * 16);
-            mag += 10 + (int)(Math.random() * 16);
-            def += 10 + (int)(Math.random() * 16);
-            res += 10 + (int)(Math.random() * 16);
+        while(str + mag + spd + def + res + skl + lck < 300) {
+            str += 5 + (int)(Math.random() * 16);
+            mag += 5 + (int)(Math.random() * 16);
+            spd += 5 + (int)(Math.random() * 16);
+            def += 5 + (int)(Math.random() * 16);
+            res += 5 + (int)(Math.random() * 16);
+            skl += 5 + (int)(Math.random() * 16);
+            lck += 5 + (int)(Math.random() * 16);
         }
         if(str < 5) {
             str = 5;
