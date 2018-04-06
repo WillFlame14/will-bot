@@ -21,29 +21,16 @@ public class Player {
         this.authorid = authorid;
     }
     
-    public String toDisplayString() {
-        return "**" + username + "'s Stats:**"
-                + "\nLv: " + stats.lvl
-                + "\nHP: " + stats.chp + "/" + stats.thp
-                + "\nStr: " + stats.str
-                + "\nMag: " + stats.mag
-                + "\nSpd: " + stats.spd
-                + "\nDef: " + stats.def
-                + "\nRes: " + stats.res
-                + "\nSkl: " + stats.skl
-                + "\nLck: " + stats.lck;
-    }
-    
     public String toEmbedString() {
-        return "\nLv: " + stats.lvl 
-                + "\nHP: " + stats.chp + "/" + stats.thp + (levelup[0]?" **(+1)**":"")
-                + "\nStr: " + stats.str + (levelup[1]?" **(+1)**":"")
-                + "\nMag: " + stats.mag + (levelup[2]?" **(+1)**":"")
-                + "\nSpd: " + stats.spd + (levelup[3]?" **(+1)**":"")
-                + "\nDef: " + stats.def + (levelup[4]?" **(+1)**":"")
-                + "\nRes: " + stats.res + (levelup[5]?" **(+1)**":"")
-                + "\nSkl: " + stats.skl + (levelup[6]?" **(+1)**":"")
-                + "\nLck: " + stats.lck + (levelup[7]?" **(+1)**":"");
+        return "\n**Lv:** " + stats.lvl 
+                + "\n**HP:** " + stats.chp + "/" + stats.thp + (levelup[0]?" **(+1)**":"")
+                + "\n**Str:** " + stats.str + (levelup[1]?" **(+1)**":"")
+                + "\n**Mag:** " + stats.mag + (levelup[2]?" **(+1)**":"")
+                + "\n**Spd:** " + stats.spd + (levelup[3]?" **(+1)**":"")
+                + "\n**Def:** " + stats.def + (levelup[4]?" **(+1)**":"")
+                + "\n**Res:** " + stats.res + (levelup[5]?" **(+1)**":"")
+                + "\n**Skl:** " + stats.skl + (levelup[6]?" **(+1)**":"")
+                + "\n**Lck:** " + stats.lck + (levelup[7]?" **(+1)**":"");
     }
     
     public String toString() {
@@ -84,39 +71,40 @@ public class Player {
     }
     
     public void levelup() {
+        boolean aptitude = (skill == Skill.Aptitude);
         for(int i = 0; i < 8; i++) {
             levelup[i] = false;
         }
-        if(Math.random() * 100 < growths.hp) {
+        if(Math.random() * 100 < growths.hp + (aptitude?10:0)) {
             stats.thp++;
             stats.chp++;
             levelup[0] = true;
         }
-        if(Math.random() * 100 < growths.str) {
+        if(Math.random() * 100 < growths.str + (aptitude?10:0)) {
             stats.str++;
             levelup[1] = true;
         }
-        if(Math.random() * 100 < growths.mag) {
+        if(Math.random() * 100 < growths.mag + (aptitude?10:0)) {
             stats.mag++;
             levelup[2] = true;
         }
-        if(Math.random() * 100 < growths.spd) {
+        if(Math.random() * 100 < growths.spd + (aptitude?10:0)) {
             stats.spd++;
             levelup[3] = true;
         }
-        if(Math.random() * 100 < growths.def) {
+        if(Math.random() * 100 < growths.def + (aptitude?10:0)) {
             stats.def++;
             levelup[4] = true;
         }
-        if(Math.random() * 100 < growths.res) {
+        if(Math.random() * 100 < growths.res + (aptitude?10:0)) {
             stats.res++;
             levelup[5] = true;
         }
-        if(Math.random() * 100 < growths.skl) {
+        if(Math.random() * 100 < growths.skl + (aptitude?10:0)) {
             stats.skl++;
             levelup[6] = true;
         }
-        if(Math.random() * 100 < growths.lck) {
+        if(Math.random() * 100 < growths.lck + (aptitude?10:0)) {
             stats.lck++;
             levelup[7] = true;
         }
@@ -136,11 +124,13 @@ public class Player {
             case Adept:
             case Vantage:
             case Cancel:
-                return stats.spd > Math.random() * 100;
+                return stats.spd > (int)(Math.random() * 100);
             case Resolve:
             case Wrath:
                 return stats.chp <= stats.thp / 2;
-            default:        //100% activation skills, like Crit+10
+            case Pavise:
+                return stats.skl > (int)(Math.random() * 100);
+            default:        //100% activation skills: Aptitude, Crit+10, Fortune
                 return true;
         }
     }

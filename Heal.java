@@ -26,15 +26,15 @@ public class Heal implements Category{
                 throw new ValidationException("You cannot heal yourself.");
             }
             recipient.stats.chp += user.weapon.mt + user.stats.mag;
-            int overflow = recipient.stats.thp - recipient.stats.chp;
+            int overflow = recipient.stats.chp - recipient.stats.thp;
             if(overflow > 0) {
                 recipient.stats.chp = recipient.stats.thp;
-                c.sendMessage(user.username + " healed " + recipient.username + " for " + (user.weapon.mt + user.stats.mag - overflow) + " HP."
-                        + "\n\n" + recipient.username + "'s HP: " + recipient.stats.chp + "/" + recipient.stats.thp).queue();
+                c.sendMessage(Utilities.bold(user.username) + " healed " + Utilities.bold(recipient.username) + " for " + (user.weapon.mt + user.stats.mag - overflow) + " HP."
+                        + "\n\n" + Utilities.bold(recipient.username + "'s HP: ") + recipient.stats.chp + "/" + recipient.stats.thp).queue();
             }
             else {
-                c.sendMessage(user.username + " healed " + recipient.username + " for " + (user.weapon.mt + user.stats.mag) + " HP."
-                        + "\n\n" + recipient.username + "'s HP: " + recipient.stats.chp + "/" + recipient.stats.thp).queue();
+                c.sendMessage(Utilities.bold(user.username) + " healed " + Utilities.bold(recipient.username) + " for " + (user.weapon.mt + user.stats.mag) + " HP."
+                        + "\n\n" + Utilities.bold(recipient.username + "'s HP: ") + recipient.stats.chp + "/" + recipient.stats.thp).queue();
             }
             Bot.update();
         }

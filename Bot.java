@@ -13,13 +13,13 @@ import java.io.*;
 import net.dv8tion.jda.core.entities.MessageEmbed;
 
 public class Bot extends ListenerAdapter {
-    public JDA jda;
+    static JDA jda;
     static HashMap<String, Player> playermap = new HashMap<>();
     static HashMap<String, Long> idmap = new HashMap<>();
     static LinkedList<Category> categories = new LinkedList<>();
     static MessageEmbed battleHelp, helpEmbed; 
     static EmbedBuilder statsEmbed = new EmbedBuilder();
-    static boolean calculated;
+    static HashMap<Long, Boolean> calculated = new HashMap<>();
     static long calcid;
     
     public Bot() throws Exception {
@@ -44,15 +44,15 @@ public class Bot extends ListenerAdapter {
             }
         }
         
-        if(!parts[0].equals("w!confirm")) {
-            calculated = false;
+        if(calculated.get(event.getAuthor().getIdLong()) && !parts[0].equals("w!confirm")) {        //true, but wasn't confirmed
+            calculated.replace(event.getAuthor().getIdLong(), false);
         }
         
         try {
             for(Category category:categories) {
                 if(category.isActionApplicable(parts[0])) {
-                    category.response(parts[0], args, event);
                     valid = true;
+                    category.response(parts[0], args, event);
                 }
             }
         }
@@ -79,6 +79,9 @@ public class Bot extends ListenerAdapter {
             Scanner config = new Scanner(new File("config.txt"));
             while(config.hasNextLine()) {
                 String[] temp = config.nextLine().split(",.,");
+                if(temp[0].contains("Fighter")) {
+                    continue;
+                }
                 Weapon weapon = Weapon.valueOf(temp[20]);
                 Skill skill = Skill.valueOf(temp[21]);
                 long authorid = Long.parseLong(temp[22]);
@@ -92,6 +95,7 @@ public class Bot extends ListenerAdapter {
                 }
                 playermap.put(temp[0], new Player(temp[0], new Stats(stats), new Growths(growths), weapon, skill, authorid));
                 idmap.put(temp[0], authorid);
+                calculated.put(authorid, false);
             }
         }
         catch(FileNotFoundException e) {
@@ -108,25 +112,26 @@ public class Bot extends ListenerAdapter {
         EmbedBuilder help = new EmbedBuilder();
         help.setTitle("Help", null);
         help.setColor(Color.blue);
-        help.setDescription("Solace v1.1");
-        help.addField("Commands", "w!register <username> - Registers a user."
-                + "\nw!stats <user> - Displays stats."
-                + "\nw!reroll <user> - Rerolls stats."
-                + "\nw!users - Displays a list of all currently registered users.\n"
-                + "\nw!weapons - Shows a list of weapons."
-                + "\nw!equip <user> <weapon> - Equips a weapon."
-                + "\nw!unequip <user> - Unequips a weapon.\n"
-                + "\nw!skills - Shows a list of skills."
-                + "\nw!assign <user> <skill> - Assigns a skill."
-                + "\nw!remove <user> - Removes a skill.\n"
-                + "\nw!attackp <user> <enemy> - Attacks an enemy physically."
-                + "\nw!attackm <user> <enemy> - Attacks an enemy magically."
-                + "\nw!confirm - Confirms the attack. Can only be used immediately after w!attackp or w!attackm.\n"
+        help.setDescription("**Solace v1.11** - The Hit Chance Update");
+        help.addField("Commands", "**w!register <username>** - Registers a user."
+                + "\n**w!stats <user>** - Displays stats."
+                + "\n**w!reroll <user>** - Rerolls stats."
+                + "\n**w!users** - Displays a list of registered users.\n"
+                + "\n**w!weapons** - Shows a list of weapons."
+                + "\n**w!equip <user> <weapon>** - Equips a weapon."
+                + "\n**w!unequip <user>** - Unequips a weapon.\n"
+                + "\n**w!skills** - Shows a list of skills."
+                + "\n**w!assign <user> <skill>** - Assigns a skill."
+                + "\n**w!remove <user>** - Removes a skill.\n"
+                + "\n**w!attackp <user> <enemy>** - Attacks an enemy physically."
+                + "\n**w!attackm <user> <enemy>** - Attacks an enemy magically."
+                + "\n**w!confirm** - Confirms the attack. Only used immediately after w!attackp or w!attackm."
+                + "\n**w!heal <user> <recipient>** - Heals the recipient. Requires a staff equipped.\n"
                 + "\nTo train against stratum units, replace the enemy name with \"stratum\"+<stratum level>."
-                + "\nFor example, \"stratum6\" matches you against a generated enemy that is from stratum level 6."
+                + "\nFor example, \"stratum6\" matches you against an enemy from stratum level 6."
                 + "\nStratum enemies can be then attacked using their username.\n" 
-                + "\nw!ping - Pong!"
-                + "\nw!roll - Rolls a 6-sided die.", true);
+                + "\n**w!ping** - Pong!"
+                + "\n**w!roll** - Rolls a 6-sided die.", true);
         help.setFooter("Created by @WillFlame#5739", null);
         helpEmbed = help.build();
         

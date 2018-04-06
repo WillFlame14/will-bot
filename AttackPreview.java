@@ -48,7 +48,7 @@ public class AttackPreview extends Attack{
             c.sendMessage("You did not specify enough arguments. The correct usage is `" + action + " <player> <enemy>`").queue();
             return;
         }
-        Bot.calculated = true;
+        Bot.calculated.replace(event.getAuthor().getIdLong(), true);
         Bot.calcid = event.getMessage().getAuthor().getIdLong();
     }
 }
@@ -63,7 +63,7 @@ class AttackConfirm extends Attack{
         if(Bot.calcid != event.getMessage().getAuthor().getIdLong()) {
             throw new ValidationException("You may not confirm someone else's action.");
         }
-        if(Bot.calculated) {
+        if(Bot.calculated.get(event.getAuthor().getIdLong())) {
             c.sendMessage(battleResult().build()).queue();
             if(!levelup.equals("")) {
                 Player p = Bot.playermap.get(levelup);
@@ -72,7 +72,7 @@ class AttackConfirm extends Attack{
                 c.sendMessage(p.showStats().build()).queue();
                 levelup = "";
             }
-            Bot.calculated = false;
+            Bot.calculated.replace(event.getAuthor().getIdLong(), false);
             Bot.update();
         }
         else {
