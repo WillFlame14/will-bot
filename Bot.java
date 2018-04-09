@@ -15,12 +15,15 @@ import net.dv8tion.jda.core.entities.MessageEmbed;
 public class Bot extends ListenerAdapter {
     static JDA jda;
     static HashMap<String, Player> playermap = new HashMap<>();
+    static HashMap<Long, Player> defaultPlayer = new HashMap<>();
     static HashMap<String, Long> idmap = new HashMap<>();
+    static HashMap<String, AttackSave> attacksaves = new HashMap<>();
+    static HashMap<Long, String> attackusers = new HashMap<>();
+    static HashMap<String, Player> enemySave = new HashMap<>();
     static LinkedList<Category> categories = new LinkedList<>();
-    static MessageEmbed battleHelp, helpEmbed; 
+    static MessageEmbed changelog, helpEmbed; 
     static EmbedBuilder statsEmbed = new EmbedBuilder();
     static HashMap<Long, Boolean> calculated = new HashMap<>();
-    static long calcid;
     
     public Bot() throws Exception {
         jda = new JDABuilder(AccountType.BOT).setToken("NDIyNDgxMzM3MzE2ODAyNTYw.DYcaBg.AQrb8xn6vR9DXt2dwEE9pEqXE4k").buildBlocking();
@@ -32,7 +35,7 @@ public class Bot extends ListenerAdapter {
         String[] parts = m.split(" ");
         boolean valid = false;
         MessageChannel c = event.getChannel();
-        if(event.getAuthor().isBot() || !m.startsWith("w!")) {       //from bot, no command
+        if(!m.startsWith("w!")) {       //no command
             return;
         }
 //        c.addReactionById(event.getMessageId(), "✅").queue();
@@ -44,7 +47,7 @@ public class Bot extends ListenerAdapter {
             }
         }
         
-        if(calculated.get(event.getAuthor().getIdLong()) && !parts[0].equals("w!confirm")) {        //true, but wasn't confirmed
+        if(calculated.containsKey(event.getAuthor().getIdLong()) && calculated.get(event.getAuthor().getIdLong()) && !parts[0].equals("w!confirm")) {        //true, but wasn't confirmed
             calculated.replace(event.getAuthor().getIdLong(), false);
         }
         
@@ -53,6 +56,7 @@ public class Bot extends ListenerAdapter {
                 if(category.isActionApplicable(parts[0])) {
                     valid = true;
                     category.response(parts[0], args, event);
+                    break;
                 }
             }
         }
@@ -79,43 +83,69 @@ public class Bot extends ListenerAdapter {
             Scanner config = new Scanner(new File("config.txt"));
             while(config.hasNextLine()) {
                 String[] temp = config.nextLine().split(",.,");
-                if(temp[0].contains("Fighter")) {
-                    continue;
+                if(temp[0].contains("*g^")) {       //defaultPlayer stuff, everything else should be done by now
+                    defaultPlayer.put(Long.parseLong(temp[0].substring(3)), playermap.get(temp[1]));
                 }
-                Weapon weapon = Weapon.valueOf(temp[20]);
-                Skill skill = Skill.valueOf(temp[21]);
-                long authorid = Long.parseLong(temp[22]);
-                int[] stats = new int[12];
-                int[] growths = new int[8];
-                for(int i = 1; i < 12; i++) {
-                    stats[i - 1] = Integer.parseInt(temp[i]);
+                else {
+                    if(temp[0].contains("Fighter")) {
+                        continue;
+                    }
+                    Weapon weapon = Weapon.valueOf(temp[20]);
+                    Skill skill = Skill.valueOf(temp[temp.length - 2]);
+                    long authorid = Long.parseLong(temp[temp.length - 1]);
+                    int[] stats = new int[11];
+                    int[] growths = new int[8];
+                    int[] weaponRanks = new int[14];
+                    for(int i = 1; i < 12; i++) {
+                        stats[i - 1] = Integer.parseInt(temp[i]);
+                    }
+                    for(int i = 12; i < 20; i++) {
+                        growths[i - 12] = Integer.parseInt(temp[i]);
+                    }
+                    for(int i = 21; i < 35; i++) {
+                        weaponRanks[i - 21] = Integer.parseInt(temp[i]);
+                    }
+                    playermap.put(temp[0], new Player(temp[0], new Stats(stats), new Growths(growths), weapon, new WeaponRanks(weaponRanks), skill, authorid));
+                    idmap.put(temp[0], authorid);
+                    calculated.put(authorid, false);
                 }
-                for(int i = 12; i < 20; i++) {
-                    growths[i - 12] = Integer.parseInt(temp[i]);
-                }
-                playermap.put(temp[0], new Player(temp[0], new Stats(stats), new Growths(growths), weapon, skill, authorid));
-                idmap.put(temp[0], authorid);
-                calculated.put(authorid, false);
             }
         }
         catch(FileNotFoundException e) {
         }
         
-        EmbedBuilder battleEmbed = new EmbedBuilder();
-        battleEmbed.setTitle("Battle", null);
-        battleEmbed.setColor(Color.blue);
-        battleEmbed.setDescription("Welcome to the Battle interface!");
-        battleEmbed.addField("Starting", "Use `w!register <username>` to register.", true);
-        battleEmbed.setFooter("this is a footer", null);
-        battleHelp = battleEmbed.build();
+        EmbedBuilder changelogEmbed = new EmbedBuilder();
+        changelogEmbed.setTitle("Solace Changelog", null);
+        changelogEmbed.setColor(Color.red);
+        changelogEmbed.setDescription("To see a list of planned features, use w!planned.");
+        changelogEmbed.addField("v1.12: The Weapon Ranks Update", "- Many more weapons (**Bronze**, **Steel**, **Brave** variants) have been added.\n"
+                + "\t- The shop has been updated to contain more information.\n"
+                + "- **Weapon ranks** have been added. Weapons now require a certain rank to wield.\n"
+                + "\t- Use **w!weaponranks** to show your weapon ranks.\n"
+                + "- **Default character selection** has been added.\n"
+                + "\t- Use **w!select <user>** to auto-fill all future <user> tags.\n"
+                + "- The **Blossom** and **Discipline** skills have been added.", true);
+        changelogEmbed.addBlankField(true);
+        changelogEmbed.addField("v1.11: The Hit Chance Update", "- **Hit Rates** have been added.\n"
+                + "\t- Have fun missing 99% hits and getting critted with a 1% chance.\n"
+                + "- Many skills have been added.\n"
+                + "\t- These include **Aptitude**, **Fortune**, **Paragon** and **Pavise**.\n"
+                + "- **Tomes** (**Fire**, **Wind**, **Thunder**) have been added.\n"
+                + "- **Training stratums** have been introuced.\n"
+                + "\t- Use these by replacing the enemy's name in an attack with **\"stratum+<level>\"**.\n"
+                + "- The heal for infinite HP bug has been quashed.\n", true);
+        changelogEmbed.setFooter("Created by WillFlame#5739", null);
+        changelog = changelogEmbed.build();
         
         EmbedBuilder help = new EmbedBuilder();
         help.setTitle("Help", null);
         help.setColor(Color.blue);
-        help.setDescription("**Solace v1.11** - The Hit Chance Update");
+        help.setDescription("**Solace v1.12** - The Weapon Ranks Update");
         help.addField("Commands", "**w!register <username>** - Registers a user."
+                + "\n**w!select <user>** - Auto-fills <user>."
                 + "\n**w!stats <user>** - Displays stats."
                 + "\n**w!reroll <user>** - Rerolls stats."
+                + "\n**w!weaponranks <user>** - Displays weapon ranks."
                 + "\n**w!users** - Displays a list of registered users.\n"
                 + "\n**w!weapons** - Shows a list of weapons."
                 + "\n**w!equip <user> <weapon>** - Equips a weapon."
@@ -127,9 +157,8 @@ public class Bot extends ListenerAdapter {
                 + "\n**w!attackm <user> <enemy>** - Attacks an enemy magically."
                 + "\n**w!confirm** - Confirms the attack. Only used immediately after w!attackp or w!attackm."
                 + "\n**w!heal <user> <recipient>** - Heals the recipient. Requires a staff equipped.\n"
-                + "\nTo train against stratum units, replace the enemy name with \"stratum\"+<stratum level>."
-                + "\nFor example, \"stratum6\" matches you against an enemy from stratum level 6."
-                + "\nStratum enemies can be then attacked using their username.\n" 
+                + "\nTo train against stratum units, replace the enemy name with \"stratum\"+<level>."
+                + "\nStratum enemies can be then attacked using their name.\n" 
                 + "\n**w!ping** - Pong!"
                 + "\n**w!roll** - Rolls a 6-sided die.", true);
         help.setFooter("Created by @WillFlame#5739", null);
@@ -155,12 +184,24 @@ public class Bot extends ListenerAdapter {
         try {
             try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("config.txt"), "utf-8"))) {
                 Object[] players = playermap.values().toArray();
-                for(int i = 0; i < playermap.size() - 1; i++) {
-                    Player p = (Player)players[i];
+                for (Object player : players) {
+                    Player p = (Player) player;
+                    if(p.username.contains("Fighter")) {
+                        continue;
+                    }
                     writer.write(p.toString());
                     writer.newLine();
                 }
-                writer.write(((Player)players[players.length - 1]).toString());
+                Object[] defaults1 = defaultPlayer.keySet().toArray();
+                Object[] defaults2 = defaultPlayer.values().toArray();
+                for(int i = 0; i < defaults1.length - 1; i++) {
+                    Player p = (Player)defaults2[i];
+                    writer.write("*g^" + defaults1[i] + ",.," + p.username);
+                    writer.newLine();
+                }
+                if(!defaultPlayer.isEmpty()) {
+                    writer.write("*g^" + defaults1[defaults1.length - 1] + ",.," + ((Player)defaults2[defaults2.length - 1]).username);
+                }
             }
         }
         catch(IOException e) {

@@ -11,11 +11,16 @@ public class Heal implements Category{
     
     public void response(String action, ArrayList<String> args, MessageReceivedEvent event)throws ValidationException {
         MessageChannel c = event.getChannel();
-        if(args.size() < 2) {     //w!heal <healer> <user getting healed> 
+        Player user;
+        if(args.size() == 1 && Bot.defaultPlayer.containsKey(event.getAuthor().getIdLong())) {
+            user = Bot.defaultPlayer.get(event.getAuthor().getIdLong());
+            args.add(0, user.username);     //so that args.get(0) works
+        }
+        else if(args.size() < 2) {     //w!heal <healer> <user getting healed> 
             throw new ValidationException("You did not provide enough arguments. The correct format is `w!heal <user> <recipient>`.");
         }
         Utilities.checkPlayer(args.get(0), event.getMessage().getAuthor().getIdLong());
-        Player user = Bot.playermap.get(args.get(0));
+        user = Bot.playermap.get(args.get(0));
         if(user.weapon.staff) {
             if(!Bot.playermap.containsKey(args.get(1))) {
                 c.sendMessage("You did not specify a valid user to heal.").queue();
