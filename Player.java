@@ -8,15 +8,17 @@ public class Player {
     Stats stats;
     Growths growths;
     Weapon weapon;
+    WeaponRanks ranks;
     Skill skill;
     Long authorid;
-    boolean[] levelup = new boolean[8];
+    static boolean[] levelup = new boolean[8];
     
-    public Player(String username, Stats stats, Growths growths, Weapon weapon, Skill skill, long authorid) {
+    public Player(String username, Stats stats, Growths growths, Weapon weapon, WeaponRanks ranks, Skill skill, long authorid) {
         this.username = username;
         this.stats = stats;
         this.growths = growths;
         this.weapon = weapon;
+        this.ranks = ranks;
         this.skill = skill;
         this.authorid = authorid;
     }
@@ -34,36 +36,29 @@ public class Player {
     }
     
     public String toString() {
-        return username + ",.," + stats.chp + ",.," + stats.thp + ",.," + stats.str + ",.," + stats.mag + ",.," + stats.spd
+        String s = username + ",.," + stats.chp + ",.," + stats.thp + ",.," + stats.str + ",.," + stats.mag + ",.," + stats.spd
                 + ",.," + stats.def + ",.," + stats.res + ",.," + stats.skl + ",.," + stats.lck + ",.," + stats.lvl + ",.," + stats.xp
                 + ",.," + growths.hp + ",.," + growths.str + ",.," + growths.mag + ",.," + growths.spd + ",.," + growths.def + ",.," + growths.res 
-                + ",.," + growths.skl + ",.," + growths.lck + ",.,"+ weapon.name() + ",.," + skill.name() + ",.," + authorid;
+                + ",.," + growths.skl + ",.," + growths.lck + ",.," + weapon.name() + ",.,";
+        for(int i: ranks.toArray()) {
+            s += i + ",.,";
+        }
+        s += skill.name() + ",.," + authorid;
+        return s;
     }
     
-    public Player clone() {
-        int[]oldstats = new int[11];
-        int[]oldgrowths = new int[8];
-        oldstats[0] = stats.chp;
-        oldstats[1] = stats.thp;
-        oldstats[2] = stats.str;
-        oldstats[3] = stats.mag;
-        oldstats[4] = stats.spd;
-        oldstats[5] = stats.def;
-        oldstats[6] = stats.res;
-        oldstats[7] = stats.skl;
-        oldstats[8] = stats.lck;
-        oldstats[9] = stats.lvl;
-        oldstats[10] = stats.xp;
-        oldgrowths[0] = growths.hp;
-        oldgrowths[1] = growths.str;
-        oldgrowths[2] = growths.mag;
-        oldgrowths[3] = growths.spd;
-        oldgrowths[4] = growths.def;
-        oldgrowths[5] = growths.res;
-        oldgrowths[6] = growths.skl;
-        oldgrowths[7] = growths.lck;
-        
-        return new Player(username, new Stats(oldstats), new Growths(oldgrowths), weapon, skill, authorid);
+    public String getWeaponRanks() {
+        return "\n**Sword** " + WeaponRanks.toRank(ranks.sword) 
+                + "\n**Axe:** " + WeaponRanks.toRank(ranks.axe) 
+                + "\n**Lance:** " + WeaponRanks.toRank(ranks.lance) 
+                + "\n**Staff:** " + WeaponRanks.toRank(ranks.staff) 
+                + "\n**Fire:** " + WeaponRanks.toRank(ranks.fire) 
+                + "\n**Wind:** " + WeaponRanks.toRank(ranks.wind) 
+                + "\n**Thunder:** " + WeaponRanks.toRank(ranks.thunder); 
+    }
+    
+    public Player duplicate() {
+        return new Player(username, new Stats(stats.toArray()), new Growths(growths.toArray()), weapon, new WeaponRanks(ranks.toArray()), skill, authorid);
     }
     
     public void reroll() {
@@ -71,43 +66,21 @@ public class Player {
     }
     
     public void levelup() {
-        boolean aptitude = (skill == Skill.Aptitude);
+        boolean aptitude = (skill == Skill.Aptitude), blossom = (skill == Skill.Blossom);
+        int[] newstats = stats.toArray();
+        int[] growthrates = growths.toArray();
         for(int i = 0; i < 8; i++) {
             levelup[i] = false;
+            if(Math.random() * 100 < growthrates[i] + (aptitude?10:0)) {
+                newstats[i + 1]++;      //+1 since chp is not counted
+                levelup[i] = true;
+            }
+            else if(blossom && Math.random() * 100 < growthrates[i]) {      //try again if failed
+                newstats[i + 1]++;  
+                levelup[i] = true;
+            }
         }
-        if(Math.random() * 100 < growths.hp + (aptitude?10:0)) {
-            stats.thp++;
-            stats.chp++;
-            levelup[0] = true;
-        }
-        if(Math.random() * 100 < growths.str + (aptitude?10:0)) {
-            stats.str++;
-            levelup[1] = true;
-        }
-        if(Math.random() * 100 < growths.mag + (aptitude?10:0)) {
-            stats.mag++;
-            levelup[2] = true;
-        }
-        if(Math.random() * 100 < growths.spd + (aptitude?10:0)) {
-            stats.spd++;
-            levelup[3] = true;
-        }
-        if(Math.random() * 100 < growths.def + (aptitude?10:0)) {
-            stats.def++;
-            levelup[4] = true;
-        }
-        if(Math.random() * 100 < growths.res + (aptitude?10:0)) {
-            stats.res++;
-            levelup[5] = true;
-        }
-        if(Math.random() * 100 < growths.skl + (aptitude?10:0)) {
-            stats.skl++;
-            levelup[6] = true;
-        }
-        if(Math.random() * 100 < growths.lck + (aptitude?10:0)) {
-            stats.lck++;
-            levelup[7] = true;
-        }
+        stats = new Stats(newstats);
         stats.lvl++;
     }
     
@@ -116,6 +89,14 @@ public class Player {
         statsEmbed.setTitle("**" + username + "**", null);
         statsEmbed.setColor(Color.blue);
         statsEmbed.setDescription(toEmbedString());
+        return statsEmbed;
+    }
+    
+    public EmbedBuilder showRanks() {
+        EmbedBuilder statsEmbed = new EmbedBuilder();
+        statsEmbed.setTitle("**" + username + "**", null);
+        statsEmbed.setColor(Color.blue);
+        statsEmbed.setDescription(getWeaponRanks());
         return statsEmbed;
     }
     
@@ -133,6 +114,16 @@ public class Player {
             default:        //100% activation skills: Aptitude, Crit+10, Fortune
                 return true;
         }
+    }
+    
+    public static void clearLevelUp() {
+        for(int i = 0; i < levelup.length; i++) {
+            levelup[i] = false;
+        }
+    }
+
+    public boolean checkSame(Player p) {
+        return ((weapon == p.weapon) && (stats.chp == p.stats.chp) && (stats.lvl == stats.lvl));
     }
 }
 

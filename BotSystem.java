@@ -7,12 +7,16 @@ import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
 public class BotSystem implements Category{
     
     public boolean isActionApplicable(String action) {
-        return action.equals("w!help") || action.equals("w!ping") || action.equals("w!register") || action.equals("w!roll") || action.equals("w!users");
+        return action.equals("w!changelog") || action.equals("w!help") || action.equals("w!ping") || action.equals("w!register")
+                || action.equals("w!roll") || action.equals("w!say") || action.equals("w!select") || action.equals("w!users");
     }
     
-    public void response(String action, ArrayList<String> args, MessageReceivedEvent event) {
+    public void response(String action, ArrayList<String> args, MessageReceivedEvent event)throws ValidationException {
         MessageChannel c = event.getChannel();
         switch(action) {
+            case "w!changelog":
+                c.sendMessage(Bot.changelog).queue();
+                break;
             case "w!help":
                 c.sendMessage(Bot.helpEmbed).queue();
                 break;
@@ -26,18 +30,46 @@ public class BotSystem implements Category{
                 if(!args.isEmpty()) {
                     String name = args.get(0);
                     if(Bot.playermap.containsKey(name)) {
-                        c.sendMessage("This username is already in use. Please try again.").queue();
-                        return;
+                        throw new ValidationException("This username is already in use. Please try again.");
                     }
-                    Player p = new Player(name, new Stats(), new Growths(), Weapon.Fist, Skill.NA, event.getAuthor().getIdLong());
+                    if(name.contains(" ")) {
+                        throw new ValidationException("A username cannot contain spaces. Please try again."); 
+                    }
+                    Player p = new Player(name, new Stats(), new Growths(), Weapon.Fist, new WeaponRanks(), Skill.NA, event.getAuthor().getIdLong());
                     Bot.playermap.put(args.get(0), p);
                     Bot.idmap.put(name, event.getAuthor().getIdLong());
+                    Bot.calculated.put(event.getAuthor().getIdLong(), false);
                     c.sendMessage("You have been successfully added.").queue();
                     c.sendMessage(p.showStats().build()).queue();
                     Bot.update();       //update config.txt
                 }
                 else {        
-                    c.sendMessage("You did not specify a username to register.").queue();  
+                    throw new ValidationException("You did not specify a username to register.");  
+                }
+                break;
+            case "w!say":
+                String msg = "";
+                if(args.contains("w!say")) {
+                    throw new ValidationException("No crashing the bot. :C");
+                }
+                for(String s: args) {
+                    msg += s + " ";
+                }
+                c.sendMessage(msg).queue();
+                break;
+            case "w!select":
+                if(!args.isEmpty()) {
+                    String name = args.get(0);
+                    Utilities.checkPlayer(name, event.getMessage().getAuthor().getIdLong());
+                    if(Bot.defaultPlayer.containsValue(Bot.playermap.get(name))) {      //since all characters have 1 authority, them as value means they are default
+                        throw new ValidationException("You have already selected this character as default."); 
+                    }
+                    Bot.defaultPlayer.put(event.getAuthor().getIdLong(), Bot.playermap.get(name));
+                    c.sendMessage(name + " has been set to your default character.").queue();
+                    Bot.update();       //update config.txt
+                }
+                else {        
+                    throw new ValidationException("You did not specify a username to select.");  
                 }
                 break;
             case "w!users":

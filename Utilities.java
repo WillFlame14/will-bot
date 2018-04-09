@@ -6,8 +6,8 @@ public class Utilities{
     static ArrayList<Player> generics = new ArrayList<>();
     
     public static void init() {
-                                                    //chp, thp, str, mag, spd, def, res, skl, lck, lvl
-        generics.add(new Player("Fighter", new Stats(18, 18, 11, 5, 5, 6, 3, 4, 6, 1, 0), new Growths(), Weapon.NA, Skill.NA, -1));
+                                              //chp, thp, str, mag, spd, def, res, skl, lck, lvl, xp
+        generics.add(new Player("Fighter", new Stats(18, 18, 11, 5, 5, 6, 3, 4, 6, 1, 0), new Growths(), Weapon.NA, new WeaponRanks(), Skill.NA, -1));
         for(Player p: generics) {
             p.growths.hp = 85;
         }
@@ -31,14 +31,25 @@ public class Utilities{
     }
     
     public static Player generateStratumOpponent(int level) {
-        Player opponent = generics.get((int)(Math.random() * generics.size()));
+        if(level > 1000) {
+            level = 1000;
+        }
+        Player opponent = generics.get((int)(Math.random() * generics.size())).duplicate();
+        long identifier = (int)(Math.random() * 10000) + 1;
+        opponent.username += "" + identifier;      //add identifier
+        opponent.authorid = identifier;
         ArrayList<Weapon> weaponPool = new ArrayList<>();
         ArrayList<Skill> skillPool = new ArrayList<>();
         level += (int)(Math.random() * 5) - 2;
-        for(int i = 1; i < level; i++) {
+        for(int i = 0; i < level; i++) {
             opponent.levelup();
         }
+        opponent.stats.chp = opponent.stats.thp;        //fix HP values from leveling up
+        Player.clearLevelUp();
         weaponPool.add(Weapon.Fist);
+        weaponPool.add(Weapon.BronzeSword);
+        weaponPool.add(Weapon.BronzeAxe);
+        weaponPool.add(Weapon.BronzeLance);
         weaponPool.add(Weapon.IronSword);
         weaponPool.add(Weapon.IronAxe);
         weaponPool.add(Weapon.IronLance);
@@ -61,9 +72,9 @@ public class Utilities{
             skillPool.add(Skill.Crit15);
         }
         if(level > 20) {
-            weaponPool.remove(Weapon.IronSword);
-            weaponPool.remove(Weapon.IronAxe);
-            weaponPool.remove(Weapon.IronLance);
+            weaponPool.remove(Weapon.BronzeSword);
+            weaponPool.remove(Weapon.BronzeAxe);
+            weaponPool.remove(Weapon.BronzeLance);
             weaponPool.remove(Weapon.Fire);
             weaponPool.remove(Weapon.Wind);
             weaponPool.remove(Weapon.Thunder);
@@ -73,6 +84,8 @@ public class Utilities{
         }
         opponent.weapon = weaponPool.get((int)(Math.random() * weaponPool.size()));
         opponent.skill = skillPool.get((int)(Math.random() * skillPool.size()));
+        Bot.playermap.put(opponent.username, opponent);
+        Bot.idmap.put(opponent.username, identifier);
         return opponent;
     }
     
