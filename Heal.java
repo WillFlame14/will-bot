@@ -41,6 +41,15 @@ public class Heal implements Category{
                 c.sendMessage(Utilities.bold(user.username) + " healed " + Utilities.bold(recipient.username) + " for " + (user.weapon.mt + user.stats.mag) + " HP."
                         + "\n\n" + Utilities.bold(recipient.username + "'s HP: ") + recipient.stats.chp + "/" + recipient.stats.thp).queue();
             }
+            user.ranks.staffx += user.weapon.wex;
+            System.out.println(user.weapon.wex);
+            System.out.println(user.ranks.staffx);
+            System.out.println(WeaponRanks.getXpLevelUp(user.ranks.staff));
+            if(user.ranks.staffx > WeaponRanks.getXpLevelUp(user.ranks.staff)) {
+                c.sendMessage("\n⏫ " + Utilities.bold(user.username) + "'s weapon rank increased!\n").queue();
+                user.ranks.staff++;
+                user.ranks.staffx = 0;
+            }
             Bot.update();
         }
         else {
