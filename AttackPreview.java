@@ -43,11 +43,9 @@ public class AttackPreview extends Attack{
             if(p == e) {
                 throw new ValidationException("You cannot attack yourself.");
             }
-            if(Bot.incombat.contains(e)) {
-                throw new ValidationException(e.username + " is already in combat.");
-            }
-            c.sendMessage(battleCalc(p, e, action.equals("w!attackp")).build()).queue();
-            battleCalc(e, p, action.equals("w!attackp"));       //instantiate the EmbedBuilder for enemy phase
+            c.sendMessage(battleCalc(p, e, action.equals("w!attackp"), true).build()).queue();
+            battleCalc(e, p, action.equals("w!attackp"), false);       //instantiate the EmbedBuilder for enemy phase
+            Bot.enemySave.put(p.username + " " + e.username, new Players(p.duplicate(), e.duplicate()));
         }
         else {
             c.sendMessage("You did not specify enough arguments. The correct usage is `" + action + " <player> <enemy>`").queue();
@@ -65,14 +63,19 @@ class AttackConfirm extends Attack{
     public void response(String action, ArrayList<String> args, MessageReceivedEvent event)throws ValidationException {
         c = event.getChannel();
         if(Bot.calculated.get(event.getAuthor().getIdLong())) {
-            c.sendMessage(battleResult(event.getAuthor().getIdLong()).build()).queue();
+            String[] currentPlayers = Bot.attackusers.get(event.getAuthor().getIdLong()).split(" ");
+            if(!Bot.enemySave.get(Bot.attackusers.get(event.getAuthor().getIdLong())).player.checkSame(Bot.playermap.get(currentPlayers[0]))
+             || !Bot.enemySave.get(Bot.attackusers.get(event.getAuthor().getIdLong())).enemy.checkSame(Bot.playermap.get(currentPlayers[1]))) {
+                throw new ValidationException("Your interaction with the opponent has changed since your calculation. Please re-calculate.");
+            }
+            c.sendMessage(battleResult(event.getAuthor().getIdLong(), true).build()).queue();
             checkLevelUps();
             String[] players = Bot.attackusers.get(event.getAuthor().getIdLong()).split(" ");
             Player pl = Bot.playermap.get(players[0]);
             if(Bot.playermap.containsKey(players[1]) && pl.stats.chp > 0) {    //stratum opponent did not die, player did not die
                 Player en = Bot.playermap.get(players[1]);
                 if(en.stats.chp > 0) {      //user opponent did not die
-                    c.sendMessage(battleResult(en.authorid).build()).queue();
+                    c.sendMessage(battleResult(en.authorid, false).build()).queue();
                     checkLevelUps();
                 }
             }

@@ -17,7 +17,7 @@ public abstract class Attack implements Category{
     
     public abstract void response(String action, ArrayList<String> args, MessageReceivedEvent event)throws ValidationException;
     
-    protected EmbedBuilder battleCalc(Player p, Player e, boolean physical) {
+    protected EmbedBuilder battleCalc(Player p, Player e, boolean physical, boolean playerPhase) {
         player = p;
         enemy = e;
         phys = physical;
@@ -159,13 +159,23 @@ public abstract class Attack implements Category{
         Bot.attacksaves.put(player.username + " " + enemy.username, new AttackSave(playerdouble, enemydouble, playerSkill, enemySkill, phys, 
                 playerCritChance, enemyCritChance, playerDmg, enemyDmg, playerHitChance, enemyHitChance, pAttackSpeed, eAttackSpeed, pAttackSkill, eAttackSkill, 
                 player, enemy));
-        Bot.attackusers.put(player.authorid, player.username + " " + enemy.username);
-        Bot.enemySave.put(player + " " + enemy, enemy.duplicate());
+        if(playerPhase) {
+            Bot.attackusers.put(player.authorid, player.username + " " + enemy.username);
+        }
+        else {
+            Bot.enemyattackusers.put(player.authorid, player.username + " " + enemy.username);
+        }
         return battleCalc;
     }
     
-    protected EmbedBuilder battleResult(long id) {
-        AttackSave as = Bot.attacksaves.get(Bot.attackusers.get(id));
+    protected EmbedBuilder battleResult(long id, boolean playerPhase) {
+        AttackSave as;
+        if(playerPhase) {
+            as = Bot.attacksaves.get(Bot.attackusers.get(id));
+        }
+        else {
+            as = Bot.attacksaves.get(Bot.enemyattackusers.get(id));
+        }
         playerdouble = as.playerdouble;
         enemydouble = as.enemydouble;
         playerSkill = as.playerSkill;
@@ -185,7 +195,7 @@ public abstract class Attack implements Category{
         enemy = as.enemy;
         Bot.enemySave.remove(player + " " + enemy);
         String username = player.username, enemyname = enemy.username, battleText = "";
-        Skill uSkill = (playerSkill?player.skill:Skill.NA), eSkill = (enemySkill?enemy.skill:Skill.NA);
+        Skill eSkill = (enemySkill?enemy.skill:Skill.NA);
         LinkedList<Integer> order = new LinkedList<>();
         
         EmbedBuilder battleResult = new EmbedBuilder();
@@ -436,3 +446,4 @@ class AttackSave {
         enemy = e;
     }
 }
+

@@ -14,13 +14,14 @@ import net.dv8tion.jda.core.entities.MessageEmbed;
 
 public class Bot extends ListenerAdapter {
     static JDA jda;
-    static HashMap<String, Player> playermap = new HashMap<>();
-    static HashMap<Long, Player> defaultPlayer = new HashMap<>();
-    static HashMap<String, Long> idmap = new HashMap<>();
-    static HashMap<String, AttackSave> attacksaves = new HashMap<>();
-    static HashMap<Long, String> attackusers = new HashMap<>();
-    static HashMap<String, Player> enemySave = new HashMap<>();
-    static LinkedList<Category> categories = new LinkedList<>();
+    static HashMap<String, Player> playermap = new HashMap<>();     //username --> player
+    static HashMap<Long, Player> defaultPlayer = new HashMap<>();   //user --> defaultPlayer
+    static HashMap<String, Long> idmap = new HashMap<>();       //username --> authorid
+    static HashMap<String, AttackSave> attacksaves = new HashMap<>();       //attacker's username --> battle stats
+    static HashMap<Long, String> attackusers = new HashMap<>();     //authorid --> player + " " + enemy
+    static HashMap<Long, String> enemyattackusers = new HashMap<>();     //authorid --> player + " " + enemy
+    static HashMap<String, Players> enemySave = new HashMap<>();      //player + " " + enemy --> saved player stats, saved enemy stats
+    static LinkedList<Category> categories = new LinkedList<>();    
     static MessageEmbed changelog, helpEmbed; 
     static EmbedBuilder statsEmbed = new EmbedBuilder();
     static HashMap<Long, Boolean> calculated = new HashMap<>();
@@ -118,6 +119,19 @@ public class Bot extends ListenerAdapter {
         changelogEmbed.setTitle("Solace Changelog", null);
         changelogEmbed.setColor(Color.red);
         changelogEmbed.setDescription("To see a list of planned features, use w!planned.");
+        changelogEmbed.addField("v1.13: The Combat Update", "- An **enemy turn** has been added.\n"
+                + "\t- The enemy will **always retaliate** if neither units are dead after initial combat.\n"
+                + "- The combat system has been reworked (no visible effects).\n"
+                + "\t- Everything should be a lot smoother going forward.\n"
+                + "- Stratum enemies are now **limited to lv 1000**.\n"
+                + "\t- Generating higher-level enemies could hang the bot given the badly optimized code.\n"
+                + "- You are now **forced to re-calculate** if either your character or the enemy changes between calculation and conformation.\n"
+                + "- Player comparisons now work properly.\n"
+                + "- Stats for stratum enemies now display correctly.\n"
+                + "- Healing now correctly awards weapon XP.\n"
+                + "- Characters are now able to attack without confirming their previous action.\n"
+                + "- Skills that are permanently on no longer randomly display activation in combat.", true);
+        changelogEmbed.addBlankField(true);
         changelogEmbed.addField("v1.12: The Weapon Ranks Update", "- Many more weapons (**Bronze**, **Steel**, **Brave** variants) have been added.\n"
                 + "\t- The shop has been updated to contain more information.\n"
                 + "- **Weapon ranks** have been added. Weapons now require a certain rank to wield.\n"

@@ -130,3 +130,13 @@ public class Player {
 enum Colour {
     RED, BLUE, GREEN, COLOURLESS;
 }
+
+class Players {
+    Player player;
+    Player enemy;
+    
+    public Players(Player p, Player e) {
+        player = p;
+        enemy = e;
+    }
+}
