@@ -127,7 +127,7 @@ public class Bot extends ListenerAdapter {
                 + "\t- Generating higher-level enemies could hang the bot given the badly optimized code.\n"
                 + "- You are now **forced to re-calculate** if either your character or the enemy changes between calculation and conformation.\n"
                 + "- Player comparisons now work properly.\n"
-                + "- Stats for stratum enemies now display correctly."
+                + "- Stats for stratum enemies now display correctly.\n"
                 + "- Healing now correctly awards weapon XP.\n"
                 + "- Characters are now able to attack without confirming their previous action.\n"
                 + "- Skills that are permanently on no longer randomly display activation in combat.", true);
