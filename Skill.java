@@ -6,7 +6,7 @@ import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
 
 enum Skill implements Category {
     NA("NA"), Adept("Adept"), Aptitude("Aptitude"), Blossom("Blossom"), Cancel("Cancel"), Crit15("Critical+15"), Discipline("Discipline"),
-    Fortune("Fortune"), Paragon("Paragon"), Pavise("Pavise"), Resolve("Resolve"), Vantage("Vantage"), Wrath("Wrath");
+    Fortune("Fortune"), Gamble("Gamble"), Luna("Luna"), Paragon("Paragon"), Pavise("Pavise"), Resolve("Resolve"), Sol("Sol"), Vantage("Vantage"), Wrath("Wrath");
 
     String displayName;
     
@@ -71,9 +71,12 @@ enum Skill implements Category {
                     + "Crit15 - Increases critical chance by 15%.\n"
                     + "Discipline - Doubles weapon experience.\n"
                     + "Fortune - Negates critical attacks.\n"
+                    + "Gamble - Hit chance * 0.5, critical chance * 2\n"
+                    + "Luna - Skl% chance to negate half of enemy's Def or Res.\n"
                     + "Paragon - Doubles EXP earned.\n"
                     + "Pavise - Skl% chance of negating damage.\n"
                     + "Resolve - Increases speed and skill by 1.5x when under 50% HP.\n"
+                    + "Sol - Skl% chance to regain HP equal to half of damage dealt.\n"
                     + "Vantage - Spd% chance of attacking first, even when the enemy initiates.\n"
                     + "Wrath - Increases critical chance by 50% when under 50% HP.```").queue();
         }

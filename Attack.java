@@ -6,10 +6,9 @@ import net.dv8tion.jda.core.entities.MessageChannel;
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
 
 public abstract class Attack implements Category{
-    static boolean playerdouble, enemydouble, playerSkill, enemySkill, stratum, defaultuser, phys;
-    static int playerCritChance, enemyCritChance, playerDmg, enemyDmg, playerHitChance, enemyHitChance, pAttackSpeed, eAttackSpeed, pAttackSkill, eAttackSkill;
-    static String levelup = "";
-    static String weaponup = "";
+    static boolean playerdouble, enemydouble, playerSkill, enemySkill, stratum, defaultuser, phys, bossAttack = false, defeatBoss = false;
+    static int playerCritChance = 0, enemyCritChance = 0, playerDmg, enemyDmg, playerHitChance, enemyHitChance, pAttackSpeed, eAttackSpeed, pAttackSkill, eAttackSkill;
+    static String levelup = "", weaponup = "";
     static Player player, enemy;
     MessageChannel c;
     
@@ -75,8 +74,8 @@ public abstract class Attack implements Category{
             enemyCritChance = 0;
         }
         
-        playerDmg = physical?player.stats.str - enemy.stats.def : player.stats.mag - enemy.stats.res + (triangle / 10);
-        enemyDmg = enemyDmg = physical?enemy.stats.str - player.stats.def : enemy.stats.mag - player.stats.res - (triangle / 10);
+        playerDmg = (physical?player.stats.str - enemy.stats.def : player.stats.mag - enemy.stats.res) + (triangle / 10);
+        enemyDmg = (physical?enemy.stats.str - player.stats.def : enemy.stats.mag - player.stats.res) - (triangle / 10);
         if(playerDmg < 0) {
             playerDmg = 0;
         }
@@ -97,6 +96,11 @@ public abstract class Attack implements Category{
                 case Fortune:
                     enemyCritChance = 0;
                     playerHighlight = true;
+                    break;
+                case Gamble:
+                    playerHitChance /= 2;
+                    playerCritChance *= 2;
+                    break;
                 case Resolve:
                     pAttackSpeed *= 1.5;
                     pAttackSkill *= 1.5;
@@ -118,6 +122,11 @@ public abstract class Attack implements Category{
                 case Fortune:
                     enemyCritChance = 0;
                     enemyHighlight = true;
+                    break;
+                case Gamble:
+                    playerHitChance /= 2;
+                    playerCritChance *= 2;
+                    break;
                 case Resolve:
                     eAttackSpeed *= 1.5;
                     eAttackSkill *= 1.5;
@@ -129,8 +138,8 @@ public abstract class Attack implements Category{
                     break;
             }
         }
-        playerHitChance = (player.stats.skl * 2 + player.stats.lck + player.weapon.accuracy) - (eAttackSpeed * 2 + enemy.stats.lck) + triangle;
-        enemyHitChance = (enemy.stats.skl * 2 + enemy.stats.lck + enemy.weapon.accuracy) - (pAttackSpeed * 2 + player.stats.lck) - triangle;
+        playerHitChance += (player.stats.skl * 2 + player.stats.lck + player.weapon.accuracy) - (eAttackSpeed * 2 + enemy.stats.lck) + triangle;
+        enemyHitChance += (enemy.stats.skl * 2 + enemy.stats.lck + enemy.weapon.accuracy) - (pAttackSpeed * 2 + player.stats.lck) - triangle;
         if(playerHitChance < 0) 
             playerHitChance = 0;
         if(enemyHitChance < 0) 
@@ -334,16 +343,32 @@ public abstract class Attack implements Category{
         Player p = playerAtk?player:enemy;
         Player e = (!playerAtk)?player:enemy;
         crit = critChance > Math.random() * 100;        //roll crits
+        
         if(e.activateSkill() && e.skill == Skill.Pavise) {
             damage = 0;
-            battleText += "\n\n" + e.username + "'s Pavise activated!\n";
+            battleText += "\n" + e.username + "'s Pavise activated!\n";
         }
-        if(skill != Skill.NA && (skill == Skill.Adept || skill == Skill.Cancel || skill == Skill.Vantage)) {     //some skill activated
-            battleText += "\n\n" + p.username + "'s " + Utilities.bold(skill.displayName) + " activated!\n";
+        if(skill == Skill.Luna) {
+            damage += (phys?e.stats.def:e.stats.res) / 2;
         }
+        if(crit) {
+            damage *= 3;
+        }
+        if(skill != Skill.NA && (skill == Skill.Adept || skill == Skill.Cancel || skill == Skill.Vantage || skill == Skill.Luna || skill == Skill.Sol)) {     //some skill activated
+            battleText += "\n" + p.username + "'s " + Utilities.bold(skill.displayName) + " activated!\n";
+        }
+        
         battleText += "\n" + Utilities.bold(p.username) + " attacked " + Utilities.bold(e.username) + "!" + (crit ? " Critical Hit!" : "")
-                + "\nDealt " + "**" + damage * (crit?3:1) + "** damage.";
-        e.stats.chp -= damage * (crit?3:1);
+                + "\nDealt " + "**" + damage + "** damage.\n";
+        
+        if(skill == Skill.Sol) {
+            battleText += "\n" + Utilities.bold(p.username) + " regained " + (damage / 2) + " HP.\n";
+            p.stats.chp += damage / 2;
+            if(p.stats.chp > p.stats.thp) {
+                p.stats.chp = p.stats.thp;
+            }
+        }
+        e.stats.chp -= damage;
         return battleText;
     }
     
@@ -353,6 +378,28 @@ public abstract class Attack implements Category{
         if(player.stats.chp < 1) {
             results += "\n\n" + Utilities.bold(enemy.username) + " is victorious!";
             enemy.stats.xp += Utilities.xpGained(enemy, player) * (enemy.skill == Skill.Paragon?2:1) * (enemy.skill == Skill.Blossom?0.5:1);
+            
+            if(player.username.contains("Fighter")) {       //if during enemy phase
+                Bot.playermap.remove(player.username, player);
+                Bot.idmap.remove(player.username);
+            }
+            Player pSave = player;
+            try {
+                player = (Boss)player;
+                int id = ((Boss)player).bossid;
+                boolean complete = true;
+                for(int i = 0; i < BossBattle.getSize(id); i++) {
+                    if(BossBattle.rooms.get(id).get(i).stats.chp > 0) {
+                        complete = false;
+                    }
+                }
+                if(complete) {
+                    defeatBoss = true;
+                }
+            }
+            catch(ClassCastException cce) {
+                player = pSave;
+            }
             if(enemy.stats.xp >= Utilities.getXpLevelUp(enemy.stats.lvl) && enemy.stats.lvl < 40) {
                 levelup = enemy.username;
                 enemy.stats.xp = 0;
@@ -362,9 +409,26 @@ public abstract class Attack implements Category{
             results += "\n\n" + Utilities.bold(player.username) + " is victorious!";
             player.stats.xp += Utilities.xpGained(player, enemy) * (player.skill == Skill.Paragon?2:1) * (player.skill == Skill.Blossom?0.5:1);
             
-            if(enemy.username.contains("Fighter")){
+            if(enemy.username.contains("Fighter")) {
                 Bot.playermap.remove(enemy.username, enemy);
-                Bot.idmap.remove(enemy.username, 422481337316802560L);
+                Bot.idmap.remove(enemy.username);
+            }
+            Player eSave = enemy;
+            try {
+                enemy = (Boss)enemy;
+                int id = ((Boss)enemy).bossid;
+                boolean complete = true;
+                for(int i = 0; i < BossBattle.getSize(id); i++) {
+                    if(BossBattle.rooms.get(id).get(i).stats.chp > 0) {
+                        complete = false;
+                    }
+                }
+                if(complete) {
+                    defeatBoss = true;
+                }
+            }
+            catch(ClassCastException e) {
+                enemy = eSave;
             }
             if(player.stats.xp >= Utilities.getXpLevelUp(player.stats.lvl) && player.stats.lvl < 40) {
                 levelup = player.username;

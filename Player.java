@@ -36,10 +36,14 @@ public class Player {
     }
     
     public String toString() {
-        String s = username + ",.," + stats.chp + ",.," + stats.thp + ",.," + stats.str + ",.," + stats.mag + ",.," + stats.spd
-                + ",.," + stats.def + ",.," + stats.res + ",.," + stats.skl + ",.," + stats.lck + ",.," + stats.lvl + ",.," + stats.xp
-                + ",.," + growths.hp + ",.," + growths.str + ",.," + growths.mag + ",.," + growths.spd + ",.," + growths.def + ",.," + growths.res 
-                + ",.," + growths.skl + ",.," + growths.lck + ",.," + weapon.name() + ",.,";
+        String s = username + ",.,";
+        for(int i: stats.toArray()) {
+            s += i + ",.,";
+        }
+        for(int i: growths.toArray()) {
+            s += i + ",.,";
+        }
+        s += weapon.name() + ",.,";
         for(int i: ranks.toArray()) {
             s += i + ",.,";
         }
@@ -109,9 +113,11 @@ public class Player {
             case Resolve:
             case Wrath:
                 return stats.chp <= stats.thp / 2;
+            case Luna:
             case Pavise:
+            case Sol:
                 return stats.skl > (int)(Math.random() * 100);
-            default:        //100% activation skills: Aptitude, Crit+10, Fortune
+            default:        //100% activation skills: Aptitude, Blossom, Crit+15, Discipline, Fortune, Gamble, Paragon
                 return true;
         }
     }
@@ -124,6 +130,15 @@ public class Player {
 
     public boolean checkSame(Player p) {
         return ((weapon == p.weapon) && (stats.chp == p.stats.chp) && (stats.lvl == stats.lvl));
+    }
+}
+
+class Boss extends Player {
+    int bossid;
+    
+    public Boss(String username, Stats stats, Weapon weapon, Skill skill, int authorid, int bid) {
+        super(username, stats, new Growths(), weapon, new WeaponRanks(), skill, authorid);
+        bossid = bid;
     }
 }
 
