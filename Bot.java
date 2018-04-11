@@ -22,9 +22,10 @@ public class Bot extends ListenerAdapter {
     static HashMap<Long, String> enemyattackusers = new HashMap<>();     //authorid --> player + " " + enemy
     static HashMap<String, Players> enemySave = new HashMap<>();      //player + " " + enemy --> saved player stats, saved enemy stats
     static LinkedList<Category> categories = new LinkedList<>();    
-    static MessageEmbed changelog, helpEmbed; 
-    static EmbedBuilder statsEmbed = new EmbedBuilder();
-    static HashMap<Long, Boolean> calculated = new HashMap<>();
+    static MessageEmbed changelog, helpEmbed;           //these can be MessageEmbeds since they're only generated once
+    static EmbedBuilder statsEmbed = new EmbedBuilder();        //not MessageEmbed since will vary each generation
+    static HashMap<Long, Boolean> calculated = new HashMap<>();     //authorid --> calculated?
+    static ArrayList<Boss> bosses = new ArrayList<>(10);
     
     public Bot() throws Exception {
         jda = new JDABuilder(AccountType.BOT).setToken("NDIyNDgxMzM3MzE2ODAyNTYw.DYcaBg.AQrb8xn6vR9DXt2dwEE9pEqXE4k").buildBlocking();
@@ -32,29 +33,30 @@ public class Bot extends ListenerAdapter {
     }
 
     public void onMessageReceived(MessageReceivedEvent event) {
-        String m = event.getMessage().getContentDisplay();
+        String m = event.getMessage().getContentDisplay();      
         String[] parts = m.split(" ");
-        boolean valid = false;
+        boolean valid = false;      //whether the command was valid
         MessageChannel c = event.getChannel();
         if(!m.startsWith("w!")) {       //no command
             return;
         }
 //        c.addReactionById(event.getMessageId(), "✅").queue();
         
-        ArrayList<String> args = new ArrayList<>();
+        ArrayList<String> args = new ArrayList<>();     //place all the arguments into a list
         if(parts.length > 1) {
             for(int i = 0; i < parts.length - 1; i++) {
                 args.add(parts[i + 1]);
             }
         }
         
-        if(calculated.containsKey(event.getAuthor().getIdLong()) && calculated.get(event.getAuthor().getIdLong()) && !parts[0].equals("w!confirm")) {        //true, but wasn't confirmed
+        //true, but wasn't confirmed
+        if(calculated.containsKey(event.getAuthor().getIdLong()) && calculated.get(event.getAuthor().getIdLong()) && !parts[0].equals("w!confirm")) {        
             calculated.replace(event.getAuthor().getIdLong(), false);
         }
         
         try {
             for(Category category:categories) {
-                if(category.isActionApplicable(parts[0])) {
+                if(category.isActionApplicable(parts[0])) {     //go through each category and attempt to parse
                     valid = true;
                     category.response(parts[0], args, event);
                     break;
@@ -62,10 +64,10 @@ public class Bot extends ListenerAdapter {
             }
         }
         catch(ValidationException e) {
-            c.sendMessage(e.getMessage()).queue();
+            c.sendMessage(e.getMessage()).queue();      //send error message if failed to execute
         }
         
-        if(!valid) {
+        if(!valid) {        //no action was applicable
             c.sendMessage("Your command was not recognized. Use `w!help` for help.").queue();
         }
     }
@@ -79,7 +81,7 @@ public class Bot extends ListenerAdapter {
         }
     }
     
-    public static void init() {
+    public static void init() {         //all the stuff that needs to be done first
         try {       //reading from file
             Scanner config = new Scanner(new File("config.txt"));
             while(config.hasNextLine()) {
@@ -88,7 +90,7 @@ public class Bot extends ListenerAdapter {
                     defaultPlayer.put(Long.parseLong(temp[0].substring(3)), playermap.get(temp[1]));
                 }
                 else {
-                    if(temp[0].contains("Fighter")) {
+                    if(temp[0].contains("Fighter")) {       //don't save stratum enemies as the file will fill up very quickly
                         continue;
                     }
                     Weapon weapon = Weapon.valueOf(temp[20]);
@@ -154,7 +156,7 @@ public class Bot extends ListenerAdapter {
         EmbedBuilder help = new EmbedBuilder();
         help.setTitle("Help", null);
         help.setColor(Color.blue);
-        help.setDescription("**Solace v1.12** - The Weapon Ranks Update");
+        help.setDescription("**Solace v1.13** - The Combat Update");
         help.addField("Commands", "**w!register <username>** - Registers a user."
                 + "\n**w!select <user>** - Auto-fills <user>."
                 + "\n**w!stats <user>** - Displays stats."
@@ -191,7 +193,15 @@ public class Bot extends ListenerAdapter {
         categories.add(Weapon.NA);
         categories.add(gggg);
         categories.add(ggggg);
+        categories.add(new BossBattle());
         Utilities.init();
+        
+        Boss boss1 = new Boss("Cyrus", new Stats(49, 49, 30, 20, 23, 20, 22, 30, 18, 25, 0), Weapon.SteelAxe, Skill.Luna, -1, 0);
+        Boss boss2 = new Boss("Troubadour", new Stats(48, 48, 20, 27, 31, 9, 28, 20, 30, 25, 0), Weapon.Mend, Skill.Pavise, -2, 0);
+        bosses.add(boss1);
+        bosses.add(boss2);
+        Bot.playermap.put("Cyrus", boss1);
+        Bot.playermap.put("Troubadour", boss2);
     }
     
     public static void update() {
@@ -200,7 +210,7 @@ public class Bot extends ListenerAdapter {
                 Object[] players = playermap.values().toArray();
                 for (Object player : players) {
                     Player p = (Player) player;
-                    if(p.username.contains("Fighter")) {
+                    if(p.username.contains("Fighter")) {        //don't put stratum enemies into config
                         continue;
                     }
                     writer.write(p.toString());
@@ -213,7 +223,7 @@ public class Bot extends ListenerAdapter {
                     writer.write("*g^" + defaults1[i] + ",.," + p.username);
                     writer.newLine();
                 }
-                if(!defaultPlayer.isEmpty()) {
+                if(!defaultPlayer.isEmpty()) {      //no dangling newline
                     writer.write("*g^" + defaults1[defaults1.length - 1] + ",.," + ((Player)defaults2[defaults2.length - 1]).username);
                 }
             }
