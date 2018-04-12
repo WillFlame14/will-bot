@@ -377,8 +377,9 @@ public abstract class Attack implements Category{
                 + "\n" + Utilities.bold(enemy.username) + " has **" + enemy.stats.chp + "/" + enemy.stats.thp + " HP**!";
         if(player.stats.chp < 1) {
             results += "\n\n" + Utilities.bold(enemy.username) + " is victorious!";
-            enemy.stats.xp += Utilities.xpGained(enemy, player) * (enemy.skill == Skill.Paragon?2:1) * (enemy.skill == Skill.Blossom?0.5:1);
-            
+            if(player.authorid < 0) {
+                enemy.stats.xp += Utilities.xpGained(enemy, player) * (enemy.skill == Skill.Paragon?2:1) * (enemy.skill == Skill.Blossom?0.5:1);
+            }
             if(player.username.contains("Fighter")) {       //if during enemy phase
                 Bot.playermap.remove(player.username, player);
                 Bot.idmap.remove(player.username);
@@ -407,7 +408,9 @@ public abstract class Attack implements Category{
         }
         else if(enemy.stats.chp < 1) {
             results += "\n\n" + Utilities.bold(player.username) + " is victorious!";
-            player.stats.xp += Utilities.xpGained(player, enemy) * (player.skill == Skill.Paragon?2:1) * (player.skill == Skill.Blossom?0.5:1);
+            if(enemy.authorid > 0) {
+                player.stats.xp += Utilities.xpGained(player, enemy) * (player.skill == Skill.Paragon?2:1) * (player.skill == Skill.Blossom?0.5:1);
+            }
             
             if(enemy.username.contains("Fighter")) {
                 Bot.playermap.remove(enemy.username, enemy);
@@ -457,6 +460,9 @@ public abstract class Attack implements Category{
     
     private void giveWeaponExp(boolean playerAtk) {
         Player p = playerAtk ? player:enemy;
+        if(p.authorid < 0) {
+            return;
+        }
         int exp = p.weapon.wex * (p.skill == Skill.Discipline?2:1);
         switch(p.weapon.colour) {
             case RED:
