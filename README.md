@@ -29,10 +29,10 @@ v1.12: The Weapon Ranks Update
   - Many more weapons (**Bronze**, **Steel**, **Brave** variants) have been added.
     - The shop has been updated to contain more information.
   - **Weapon ranks** have been added. Weapons now require a certain rank to wield.
-                + "\t- Use **w!weaponranks** to show your weapon ranks.\n"
-                + "- **Default character selection** has been added.\n"
-                + "\t- Use **w!select <user>** to auto-fill all future <user> tags.\n"
-                + "- The **Blossom** and **Discipline** skills have been added.", true);
+    - Use **w!weaponranks** to show your weapon ranks.
+  - **Default character selection** has been added.
+    - Use **w!select <user>** to auto-fill all future <user> tags.
+  - The **Blossom** and **Discipline** skills have been added.
   
 v1.11: The Hit Chance Update
   - **Hit Rates** have been added.
