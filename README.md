@@ -5,7 +5,7 @@ Changelog:
 v1.14: The Boss Update
   - **Boss battles** have been added.
     - Use **w!boss <bossname> <players...>** to join a boss battle.
-    - **Cyrus** [Lv. 25] is the only battle for now, but more will be added soon.
+    - **Cyrus** [Lv. 15] is the only battle for now, but more will be added soon.
     - Use **w!bosses** to see a list of bosses.
     - Winning a boss battle will grant special weapons.
   - Only stratum enemies will now take an automatic turn after an attack.
