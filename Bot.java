@@ -22,13 +22,14 @@ public class Bot extends ListenerAdapter {
     static HashMap<Long, String> enemyattackusers = new HashMap<>();     //authorid --> player + " " + enemy
     static HashMap<String, Players> enemySave = new HashMap<>();      //player + " " + enemy --> saved player stats, saved enemy stats
     static LinkedList<Category> categories = new LinkedList<>();    
-    static MessageEmbed changelog, helpEmbed;           //these can be MessageEmbeds since they're only generated once
+    static MessageEmbed changelog, helpEmbed, attackHelpEmbed;           //these can be MessageEmbeds since they're only generated once
     static EmbedBuilder statsEmbed = new EmbedBuilder();        //not MessageEmbed since will vary each generation
     static HashMap<Long, Boolean> calculated = new HashMap<>();     //authorid --> calculated?
     static ArrayList<Boss> bosses = new ArrayList<>(10);
+    static String token;
     
     public Bot() throws Exception {
-        jda = new JDABuilder(AccountType.BOT).setToken("NDIyNDgxMzM3MzE2ODAyNTYw.DYcaBg.AQrb8xn6vR9DXt2dwEE9pEqXE4k").buildBlocking();
+        jda = new JDABuilder(AccountType.BOT).setToken(token).buildBlocking();
         jda.addEventListener(this);
     }
 
@@ -86,6 +87,10 @@ public class Bot extends ListenerAdapter {
             Scanner config = new Scanner(new File("config.txt"));
             while(config.hasNextLine()) {
                 String[] temp = config.nextLine().split(",.,");
+                if(temp.length == 1) {
+                    token = temp[0];
+                    continue;
+                }
                 if(temp[0].contains("*g^")) {       //defaultPlayer stuff, everything else should be done by now
                     defaultPlayer.put(Long.parseLong(temp[0].substring(3)), playermap.get(temp[1]));
                 }
@@ -120,65 +125,67 @@ public class Bot extends ListenerAdapter {
         EmbedBuilder changelogEmbed = new EmbedBuilder();
         changelogEmbed.setTitle("Solace Changelog", null);
         changelogEmbed.setColor(Color.red);
-        changelogEmbed.setDescription("To see a list of planned features, use w!planned.");
-        changelogEmbed.addField("v1.13: The Combat Update", "- An **enemy turn** has been added.\n"
+        changelogEmbed.setDescription("The full changelog can be found on github.");
+        changelogEmbed.addField("v1.4: The Boss Update", "- **Boss battles** have been added.\n"
+                + "\t- Use **w!boss <bossname> <players...>** to join a boss battle.\n"
+                + "\t- **Cyrus** [Lv. 15] is the only battle for now, but more will be added soon.\n"
+                + "\t- Use **w!bosses** to see a list of bosses, and **w!rooms** to see a list of rooms.\n"
+                + "\t- Winning a boss battle will grant special weapons.\n"
+                + "- Only stratum enemies will now take an automatic turn after an attack.\n"
+                + "- Skills **Gamble, Luna** and **Sol** have been added.", true);
+        changelogEmbed.addBlankField(true);
+        changelogEmbed.addField("v1.3: The Combat Update", "- An **enemy turn** has been added.\n"
                 + "\t- The enemy will **always retaliate** if neither units are dead after initial combat.\n"
                 + "- The combat system has been reworked (no visible effects).\n"
                 + "\t- Everything should be a lot smoother going forward.\n"
                 + "- Stratum enemies are now **limited to lv 1000**.\n"
-                + "\t- Generating higher-level enemies could hang the bot given the badly optimized code.\n"
+                + "\t- Generating higher-level enemies could hang the bot.\n"
                 + "- You are now **forced to re-calculate** if either your character or the enemy changes between calculation and conformation.\n"
                 + "- Player comparisons now work properly.\n"
                 + "- Stats for stratum enemies now display correctly.\n"
                 + "- Healing now correctly awards weapon XP.\n"
                 + "- Characters are now able to attack without confirming their previous action.\n"
                 + "- Skills that are permanently on no longer randomly display activation in combat.", true);
-        changelogEmbed.addBlankField(true);
-        changelogEmbed.addField("v1.12: The Weapon Ranks Update", "- Many more weapons (**Bronze**, **Steel**, **Brave** variants) have been added.\n"
-                + "\t- The shop has been updated to contain more information.\n"
-                + "- **Weapon ranks** have been added. Weapons now require a certain rank to wield.\n"
-                + "\t- Use **w!weaponranks** to show your weapon ranks.\n"
-                + "- **Default character selection** has been added.\n"
-                + "\t- Use **w!select <user>** to auto-fill all future <user> tags.\n"
-                + "- The **Blossom** and **Discipline** skills have been added.", true);
-        changelogEmbed.addBlankField(true);
-        changelogEmbed.addField("v1.11: The Hit Chance Update", "- **Hit Rates** have been added.\n"
-                + "\t- Have fun missing 99% hits and getting critted with a 1% chance.\n"
-                + "- Many skills have been added.\n"
-                + "\t- These include **Aptitude**, **Fortune**, **Paragon** and **Pavise**.\n"
-                + "- **Tomes** (**Fire**, **Wind**, **Thunder**) have been added.\n"
-                + "- **Training stratums** have been introuced.\n"
-                + "\t- Use these by replacing the enemy's name in an attack with **\"stratum+<level>\"**.\n"
-                + "- The heal for infinite HP bug has been quashed.\n", true);
-        changelogEmbed.setFooter("Created by WillFlame#5739", null);
         changelog = changelogEmbed.build();
-        
+                
         EmbedBuilder help = new EmbedBuilder();
         help.setTitle("Help", null);
         help.setColor(Color.blue);
-        help.setDescription("**Solace v1.13** - The Combat Update");
+        help.setDescription("**Solace v1.4** - The Boss Update");
         help.addField("Commands", "**w!register <username>** - Registers a user."
                 + "\n**w!select <user>** - Auto-fills <user>."
                 + "\n**w!stats <user>** - Displays stats."
                 + "\n**w!reroll <user>** - Rerolls stats."
                 + "\n**w!weaponranks <user>** - Displays weapon ranks."
-                + "\n**w!users** - Displays a list of registered users.\n"
+                + "\n**w!users** - Displays a list of users.\n"
                 + "\n**w!weapons** - Shows a list of weapons."
                 + "\n**w!equip <user> <weapon>** - Equips a weapon."
                 + "\n**w!unequip <user>** - Unequips a weapon.\n"
                 + "\n**w!skills** - Shows a list of skills."
                 + "\n**w!assign <user> <skill>** - Assigns a skill."
                 + "\n**w!remove <user>** - Removes a skill.\n"
-                + "\n**w!attackp <user> <enemy>** - Attacks an enemy physically."
-                + "\n**w!attackm <user> <enemy>** - Attacks an enemy magically."
-                + "\n**w!confirm** - Confirms the attack. Only used immediately after w!attackp or w!attackm."
-                + "\n**w!heal <user> <recipient>** - Heals the recipient. Requires a staff equipped.\n"
-                + "\nTo train against stratum units, replace the enemy name with \"stratum\"+<level>."
-                + "\nStratum enemies can be then attacked using their name.\n" 
+                + "\n**w!attackhelp** - Shows more help regarding attacks.\n"
                 + "\n**w!ping** - Pong!"
                 + "\n**w!roll** - Rolls a 6-sided die.", true);
         help.setFooter("Created by @WillFlame#5739", null);
-        helpEmbed = help.build();
+        helpEmbed = help.build();        
+        
+        EmbedBuilder attackHelp = new EmbedBuilder();
+        attackHelp.setTitle("Attack Help", null);
+        attackHelp.setColor(Color.blue);
+        attackHelp.setDescription("**Solace v1.4** - The Boss Update");
+        attackHelp.addField("Commands", "\n**w!attackp <user> <enemy>** - Attacks an enemy physically."
+                + "\n**w!attackm <user> <enemy>** - Attacks an enemy magically."
+                + "\n**w!confirm** - Confirms the attack. Only used immediately after w!attackp or w!attackm.\n"
+                + "\nTo train against stratum units, replace the enemy name with \"stratum\"+<level>."
+                + "\nStratum enemies can be then attacked using their name.\n"
+                + "\n**w!heal <user> <recipient>** - Heals the recipient. Requires a staff equipped.\n"
+                + "\n**w!bosses** - Displays a list of boss battles."
+                + "\n**w!rooms** - Diplays a list of rooms."
+                + "\n**w!boss <bossname> <players...>** - Creates a room to fight a boss battle."
+                + "\n**w!join <bossname> <players...>** - Joins a room, if the room exists and is not full.", true);
+        attackHelp.setFooter("Created by @WillFlame#5739", null);
+        attackHelpEmbed = attackHelp.build();
         
         Stats g = new Stats();
         AttackPreview gg = new AttackPreview();
@@ -207,6 +214,8 @@ public class Bot extends ListenerAdapter {
     public static void update() {
         try {
             try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("config.txt"), "utf-8"))) {
+                writer.write(token);
+                writer.newLine();
                 Object[] players = playermap.values().toArray();
                 for (Object player : players) {
                     Player p = (Player) player;
