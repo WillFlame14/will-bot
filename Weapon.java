@@ -4,37 +4,38 @@ import java.util.ArrayList;
 import net.dv8tion.jda.core.entities.MessageChannel;
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
 
-enum Weapon implements Category{  //mt, wt, crt, accuracy, WEx, rank, physical, staff
-    NA("NA", Colour.COLOURLESS, 0, 0, 0, 0, 0, 0, false, false),
-    Fist("Fist", Colour.COLOURLESS, 0, 1, 0, 100, 0, 0, true, false),
-    BronzeLance("Bronze Lance", Colour.BLUE, 4, 6, -100, 90, 2, 0, true, false), 
-    BronzeAxe("Bronze Axe", Colour.GREEN, 5, 7, -100, 85, 2, 0, true, false), 
-    BronzeSword("Bronze Sword", Colour.RED, 3, 5, -100, 95, 2, 0, true, false),
-    IronLance("Iron Lance", Colour.BLUE, 7, 9, 0, 85, 2, 1, true, false), 
-    IronAxe("Iron Axe", Colour.GREEN, 8, 11, 0, 80, 2, 1, true, false), 
-    IronSword("Iron Sword", Colour.RED, 6, 7, 0, 90, 2, 1, true, false),
-    SteelLance("Steel Lance", Colour.BLUE, 10, 13, 0, 80, 3, 2, true, false), 
-    SteelAxe("Steel Axe", Colour.GREEN, 11, 15, 0, 75, 3, 2, true, false),
-    SteelSword("Steel Sword", Colour.RED, 9, 11, 0, 85, 3, 2, true, false),
-    BraveLance("Brave Lance", Colour.BLUE, 10, 11, 0, 85, 2, 4, true, false), 
-    BraveAxe("Brave Axe", Colour.GREEN, 11, 13, 0, 80, 2, 4, true, false),
-    BraveSword("Brave Sword", Colour.RED, 9, 9, 0, 90, 2, 4, true, false),
-    Fire("Fire", Colour.COLOURLESS, 5, 3, 0, 90, 1, 0, false, false),
-    Wind("Wind", Colour.COLOURLESS, 4, 2, 0, 95, 1, 0, false, false),
-    Thunder("Thunder", Colour.COLOURLESS, 3, 4, 5, 80, 1, 0, false, false),
-    Elfire("Elfire", Colour.COLOURLESS, 7, 5, 0, 85, 2, 1, false, false),
-    Elwind("Elwind", Colour.COLOURLESS, 6, 4, 0, 90, 2, 1, false, false),
-    Elthunder("Elthunder", Colour.COLOURLESS, 5, 6, 10, 75, 2, 2, false, false),
-    Heal("Heal", Colour.COLOURLESS, 5, 2, 5, 100, 3, 0, false, true),
-    Mend("Mend", Colour.COLOURLESS, 10, 4, 10, 100, 5, 1, false, true);
+enum Weapon implements Category{  //mt, wt, crt, accuracy, WEx, rank, physical, staff, range
+    NA("NA", Colour.COLOURLESS, 0, 0, 0, 0, 0, 0, false, false, 0),
+    Fist("Fist", Colour.COLOURLESS, 0, 1, 0, 100, 0, 0, true, false, 1),
+    BronzeLance("Bronze Lance", Colour.BLUE, 4, 6, -100, 90, 2, 0, true, false, 1), 
+    BronzeAxe("Bronze Axe", Colour.GREEN, 5, 7, -100, 85, 2, 0, true, false, 1), 
+    BronzeSword("Bronze Sword", Colour.RED, 3, 5, -100, 95, 2, 0, true, false, 1),
+    IronLance("Iron Lance", Colour.BLUE, 7, 9, 0, 85, 2, 1, true, false, 1), 
+    IronAxe("Iron Axe", Colour.GREEN, 8, 11, 0, 80, 2, 1, true, false, 1), 
+    IronSword("Iron Sword", Colour.RED, 6, 7, 0, 90, 2, 1, true, false, 1),
+    SteelLance("Steel Lance", Colour.BLUE, 10, 13, 0, 80, 3, 2, true, false, 1), 
+    SteelAxe("Steel Axe", Colour.GREEN, 11, 15, 0, 75, 3, 2, true, false, 1),
+    SteelSword("Steel Sword", Colour.RED, 9, 11, 0, 85, 3, 2, true, false, 1),
+    BraveLance("Brave Lance", Colour.BLUE, 10, 11, 0, 85, 2, 4, true, false, 1), 
+    BraveAxe("Brave Axe", Colour.GREEN, 11, 13, 0, 80, 2, 4, true, false, 1),
+    BraveSword("Brave Sword", Colour.RED, 9, 9, 0, 90, 2, 4, true, false, 1),
+    Fire("Fire", Colour.COLOURLESS, 5, 3, 0, 90, 1, 0, false, false, 2),
+    Wind("Wind", Colour.COLOURLESS, 4, 2, 0, 95, 1, 0, false, false, 2),
+    Thunder("Thunder", Colour.COLOURLESS, 3, 4, 5, 80, 1, 0, false, false, 2),
+    Elfire("Elfire", Colour.COLOURLESS, 7, 5, 0, 85, 2, 1, false, false, 2),
+    Elwind("Elwind", Colour.COLOURLESS, 6, 4, 0, 90, 2, 1, false, false, 2),
+    Elthunder("Elthunder", Colour.COLOURLESS, 5, 6, 10, 75, 2, 2, false, false, 2),
+    Heal("Heal", Colour.COLOURLESS, 5, 2, 5, 100, 3, 0, false, true, 1),
+    Mend("Mend", Colour.COLOURLESS, 10, 4, 10, 100, 5, 1, false, true, 1),
+    Physic("Physic", Colour.COLOURLESS, 1, 5, 25, 100, 7, 2, false, true, 5);
     
     String displayName;
     Colour colour;
-    int mt, wt, crt, wex, rank, accuracy;
+    int mt, wt, crt, wex, rank, accuracy, range;
     boolean physical;
     boolean staff;
     
-    Weapon(String displayName, Colour colour, int mt, int wt, int crt, int accuracy, int wex, int rank, boolean physical, boolean staff) {
+    Weapon(String displayName, Colour colour, int mt, int wt, int crt, int accuracy, int wex, int rank, boolean physical, boolean staff, int range) {
         this.displayName = displayName;
         this.colour = colour;
         this.mt = mt;
@@ -45,6 +46,7 @@ enum Weapon implements Category{  //mt, wt, crt, accuracy, WEx, rank, physical, 
         this.rank = rank;
         this.physical = physical;
         this.staff = staff;
+        this.range = range;
     }
     
     public boolean isActionApplicable(String action) {

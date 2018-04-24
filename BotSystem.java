@@ -7,13 +7,16 @@ import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
 public class BotSystem implements Category{
     
     public boolean isActionApplicable(String action) {
-        return action.equals("w!changelog") || action.equals("w!help") || action.equals("w!ping") || action.equals("w!register")
+        return action.equals("w!attackhelp") || action.equals("w!changelog") || action.equals("w!help") || action.equals("w!ping") || action.equals("w!register")
                 || action.equals("w!roll") || action.equals("w!say") || action.equals("w!select") || action.equals("w!users");
     }
     
     public void response(String action, ArrayList<String> args, MessageReceivedEvent event)throws ValidationException {
         MessageChannel c = event.getChannel();
         switch(action) {
+            case "w!attackhelp":
+                c.sendMessage(Bot.attackHelpEmbed).queue();
+                break;
             case "w!changelog":
                 c.sendMessage(Bot.changelog).queue();
                 break;

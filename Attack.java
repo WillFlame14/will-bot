@@ -6,17 +6,19 @@ import net.dv8tion.jda.core.entities.MessageChannel;
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
 
 public abstract class Attack implements Category{
-    static boolean playerdouble, enemydouble, playerSkill, enemySkill, stratum, defaultuser, phys, bossAttack = false, defeatBoss = false;
+    static boolean playerdouble, enemydouble, playerSkill, enemySkill, stratum, defaultuser, phys, bossAttack = false, defeatBoss = false, failure = false;
     static int playerCritChance = 0, enemyCritChance = 0, playerDmg, enemyDmg, playerHitChance, enemyHitChance, pAttackSpeed, eAttackSpeed, pAttackSkill, eAttackSkill;
     static String levelup = "", weaponup = "";
+    static ArrayList<Player> playerRemove = new ArrayList<>();
+    static HashMap<Long, String> heals = new HashMap<>();
     static Player player, enemy;
-    MessageChannel c;
+    static MessageChannel c;
     
     public abstract boolean isActionApplicable(String action);
     
     public abstract void response(String action, ArrayList<String> args, MessageReceivedEvent event)throws ValidationException;
     
-    protected EmbedBuilder battleCalc(Player p, Player e, boolean physical, boolean playerPhase) {
+    protected static EmbedBuilder battleCalc(Player p, Player e, boolean physical, boolean playerPhase) {
         player = p;
         enemy = e;
         phys = physical;
@@ -177,36 +179,13 @@ public abstract class Attack implements Category{
         return battleCalc;
     }
     
-    protected EmbedBuilder battleResult(long id, boolean playerPhase) {
-        AttackSave as;
-        if(playerPhase) {
-            as = Bot.attacksaves.get(Bot.attackusers.get(id));
-        }
-        else {
-            as = Bot.attacksaves.get(Bot.enemyattackusers.get(id));
-        }
-        playerdouble = as.playerdouble;
-        enemydouble = as.enemydouble;
-        playerSkill = as.playerSkill;
-        enemySkill = as.enemySkill;
-        phys = as.phys;
-        playerCritChance = as.playerCritChance; 
-        enemyCritChance = as.enemyCritChance;
-        playerDmg = as.playerDmg;
-        enemyDmg = as.enemyDmg;
-        playerHitChance = as.playerHitChance;
-        enemyHitChance = as.enemyHitChance;
-        pAttackSpeed = as.pAttackSpeed;
-        eAttackSpeed = as.eAttackSpeed;
-        pAttackSkill = as.pAttackSkill;
-        eAttackSkill = as.eAttackSkill;
-        player = as.player;
-        enemy = as.enemy;
+    protected static EmbedBuilder battleResult(long id, boolean playerPhase) {
+        assignSavedValues(playerPhase?Bot.attacksaves.get(Bot.attackusers.get(id)):Bot.attacksaves.get(Bot.enemyattackusers.get(id)));
         Bot.enemySave.remove(player + " " + enemy);
+        
         String username = player.username, enemyname = enemy.username, battleText = "";
         Skill eSkill = (enemySkill?enemy.skill:Skill.NA);
         LinkedList<Integer> order = new LinkedList<>();
-        
         EmbedBuilder battleResult = new EmbedBuilder();
         battleResult.setTitle(Utilities.bold(username) + " vs. " + Utilities.bold(enemyname));
         
@@ -240,7 +219,8 @@ public abstract class Attack implements Category{
             }
         }
         
-        boolean playercancel = false, enemycancel = false, stopper = false;
+        boolean playercancel = false, enemycancel = false, stopper = false, adept = false;
+        int adeptSave = 0;          //TO DO: Stop Adept from activating on itself
         for(int i = 0; i < order.size(); i++) {     //all misses are already accounted for
             Skill skill = Skill.NA;
             if(null != order.get(i)) {
@@ -314,12 +294,32 @@ public abstract class Attack implements Category{
         
         return battleResult;
     }
+
+    private static void assignSavedValues(AttackSave as) {
+        playerdouble = as.playerdouble;
+        enemydouble = as.enemydouble;
+        playerSkill = as.playerSkill;
+        enemySkill = as.enemySkill;
+        phys = as.phys;
+        playerCritChance = as.playerCritChance;
+        enemyCritChance = as.enemyCritChance;
+        playerDmg = as.playerDmg;
+        enemyDmg = as.enemyDmg;
+        playerHitChance = as.playerHitChance;
+        enemyHitChance = as.enemyHitChance;
+        pAttackSpeed = as.pAttackSpeed;
+        eAttackSpeed = as.eAttackSpeed;
+        pAttackSkill = as.pAttackSkill;
+        eAttackSkill = as.eAttackSkill;
+        player = as.player;
+        enemy = as.enemy;
+    }
     
-    private boolean checkHit(int hitChance) {
+    private static boolean checkHit(int hitChance) {
         return Math.random() * 100 < hitChance;
     }
 
-    private boolean checkDeath(String battleText, EmbedBuilder battleResult) {
+    private static boolean checkDeath(String battleText, EmbedBuilder battleResult) {
         if (player.stats.chp < 1) {
             player.stats.chp = 0;
             battleText += getResults();
@@ -337,7 +337,7 @@ public abstract class Attack implements Category{
         }
     }
 
-    private String performAttack(String battleText, Skill skill, boolean playerAtk) {
+    private static String performAttack(String battleText, Skill skill, boolean playerAtk) {
         boolean crit;
         int critChance = playerAtk?playerCritChance:enemyCritChance, damage = playerAtk?playerDmg:enemyDmg;
         Player p = playerAtk?player:enemy;
@@ -375,18 +375,20 @@ public abstract class Attack implements Category{
     protected static String getResults() {
         String results = "\n\n" + Utilities.bold(player.username) + " has **" + player.stats.chp + "/" + player.stats.thp + " HP**!"
                 + "\n" + Utilities.bold(enemy.username) + " has **" + enemy.stats.chp + "/" + enemy.stats.thp + " HP**!";
-        if(player.stats.chp < 1) {
+        if(player.stats.chp < 1 || enemy.stats.chp < 1) {
+            player = player.stats.chp < 1?player:enemy;     //in this case, player is the one who died
+            enemy = player.stats.chp < 1?enemy:player;
             results += "\n\n" + Utilities.bold(enemy.username) + " is victorious!";
             if(player.authorid < 0) {
                 enemy.stats.xp += Utilities.xpGained(enemy, player) * (enemy.skill == Skill.Paragon?2:1) * (enemy.skill == Skill.Blossom?0.5:1);
             }
-            if(player.username.contains("Fighter")) {       //if during enemy phase
+            if(player.username.contains("Fighter")) {       
                 Bot.playermap.remove(player.username, player);
                 Bot.idmap.remove(player.username);
             }
             Player pSave = player;
             try {
-                player = (Boss)player;
+                player = (Boss)player;      //remember, player is the one who died. This means a boss died.
                 int id = ((Boss)player).bossid;
                 boolean complete = true;
                 for(int i = 0; i < BossBattle.getSize(id); i++) {
@@ -397,45 +399,32 @@ public abstract class Attack implements Category{
                 if(complete) {
                     defeatBoss = true;
                 }
+                if(!BossBattle.battles.get(id).removePlayer(player)) {        //try to remove them from the map
+                    System.out.println("Failed to remove " + player.username + ". Symbol was " + BossBattle.battles.get(id).playerValues.get(player));
+                }
+                BossBattle.deadBosses.get(id).add(player);
             }
             catch(ClassCastException cce) {
                 player = pSave;
             }
+            
+            if(BossBattle.inboss.contains(player)) {       //person who died was in a boss battle
+                int id = BossBattle.toBoss.get(player);
+                playerRemove.add(player);
+                BossBattle.rooms.get(id).remove(player);
+                BossBattle.toBoss.remove(player);
+                BossBattle.inboss.remove(player);
+                failure = true;
+                for(Player p: BossBattle.rooms.get(id)) {     //all players are defeated?
+                    if(p.authorid > 0) {        //there is still a player alive
+                        failure = false;
+                    }
+                }
+            }
+            
             if(enemy.stats.xp >= Utilities.getXpLevelUp(enemy.stats.lvl) && enemy.stats.lvl < 40) {
                 levelup = enemy.username;
                 enemy.stats.xp = 0;
-            }
-        }
-        else if(enemy.stats.chp < 1) {
-            results += "\n\n" + Utilities.bold(player.username) + " is victorious!";
-            if(enemy.authorid > 0) {
-                player.stats.xp += Utilities.xpGained(player, enemy) * (player.skill == Skill.Paragon?2:1) * (player.skill == Skill.Blossom?0.5:1);
-            }
-            
-            if(enemy.username.contains("Fighter")) {
-                Bot.playermap.remove(enemy.username, enemy);
-                Bot.idmap.remove(enemy.username);
-            }
-            Player eSave = enemy;
-            try {
-                enemy = (Boss)enemy;
-                int id = ((Boss)enemy).bossid;
-                boolean complete = true;
-                for(int i = 0; i < BossBattle.getSize(id); i++) {
-                    if(BossBattle.rooms.get(id).get(i).stats.chp > 0) {
-                        complete = false;
-                    }
-                }
-                if(complete) {
-                    defeatBoss = true;
-                }
-            }
-            catch(ClassCastException e) {
-                enemy = eSave;
-            }
-            if(player.stats.xp >= Utilities.getXpLevelUp(player.stats.lvl) && player.stats.lvl < 40) {
-                levelup = player.username;
-                player.stats.xp = 0;
             }
         }
         
@@ -450,7 +439,7 @@ public abstract class Attack implements Category{
             if(eranks[i + 7] > WeaponRanks.getXpLevelUp(eranks[i])) {
                 eranks[i]++;
                 eranks[i + 7] = 0;
-                weaponup += " " + enemy.username;
+                weaponup += enemy.username;
             }
         }
         player.ranks = new WeaponRanks(pranks);
@@ -458,7 +447,7 @@ public abstract class Attack implements Category{
         return results;
     }
     
-    private void giveWeaponExp(boolean playerAtk) {
+    private static void giveWeaponExp(boolean playerAtk) {
         Player p = playerAtk ? player:enemy;
         if(p.authorid < 0) {
             return;
@@ -516,4 +505,3 @@ class AttackSave {
         enemy = e;
     }
 }
-
