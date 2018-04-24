@@ -34,7 +34,7 @@ enum Skill implements Category {
                 throw new ValidationException("You did not provide enough arguments. The correct format is `w!assign <user> <skill>`");
             }
             Utilities.checkPlayer(args.get(0), event.getMessage().getAuthor().getIdLong());
-            user = (user == null)?Bot.playermap.get(args.get(0)):user;
+            user = Bot.playermap.get(args.get(0));
             try {
                 Skill skill = Skill.valueOf(args.get(1));
                 user.skill = skill;

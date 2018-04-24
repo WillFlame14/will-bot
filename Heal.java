@@ -23,8 +23,10 @@ public class Heal implements Category{
         user = Bot.playermap.get(args.get(0));
         if(user.weapon.staff) {
             if(!Bot.playermap.containsKey(args.get(1))) {
-                c.sendMessage("You did not specify a valid user to heal.").queue();
-                return;
+                throw new ValidationException("You did not specify a valid user to heal.");
+            }
+            if(BossBattle.inboss.contains(user) && BossBattle.turnover.get(BossBattle.toBoss.get(user)).contains(user)) {       //inboss and took turn already
+                throw new ValidationException(user.username + " has already taken their turn.");
             }
             Player recipient = Bot.playermap.get(args.get(1));
             if (user.equals(recipient)) {
@@ -46,6 +48,9 @@ public class Heal implements Category{
                 c.sendMessage("\n⏫ " + Utilities.bold(user.username) + "'s weapon rank increased!\n").queue();
                 user.ranks.staff++;
                 user.ranks.staffx = 0;
+            }
+            if(BossBattle.inboss.contains(user)) {      //if they're in a boss battle, healing uses a turn
+                BossBattle.turnover.get(BossBattle.toBoss.get(user)).add(user);     
             }
             Bot.update();
         }

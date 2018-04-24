@@ -25,7 +25,8 @@ public class Bot extends ListenerAdapter {
     static MessageEmbed changelog, helpEmbed, attackHelpEmbed;           //these can be MessageEmbeds since they're only generated once
     static EmbedBuilder statsEmbed = new EmbedBuilder();        //not MessageEmbed since will vary each generation
     static HashMap<Long, Boolean> calculated = new HashMap<>();     //authorid --> calculated?
-    static ArrayList<Boss> bosses = new ArrayList<>(10);
+    static ArrayList<Boss> bosses = new ArrayList<>(10);        //list of bosses
+    static ArrayList<Map> maps = new ArrayList<>(10);       //list of maps
     static String token;
     
     public Bot() throws Exception {
@@ -118,6 +119,23 @@ public class Bot extends ListenerAdapter {
                     calculated.put(authorid, false);
                 }
             }
+            
+            Scanner mapReader = new Scanner(new File("maps.txt"));
+            Map map = new Map();
+            int counter = 0;
+            while(mapReader.hasNextLine()) {
+                String line = mapReader.nextLine();
+                if(line.equals("~")) {
+                    maps.add(map);
+                    map = new Map();        //start generating a new map
+                    counter = 0;
+                    continue;
+                }
+                for(int i = 0; i < 6; i++) {
+                    map.grid[counter][i] = line.charAt(i);
+                }
+                counter++;
+            }
         }
         catch(FileNotFoundException e) {
         }
@@ -126,6 +144,15 @@ public class Bot extends ListenerAdapter {
         changelogEmbed.setTitle("Solace Changelog", null);
         changelogEmbed.setColor(Color.red);
         changelogEmbed.setDescription("The full changelog can be found on github.");
+        changelogEmbed.addField("v1.5: The Map Update", "- **Maps** have been added to boss battles.\n"
+                + "\t- During a boss battle, a 2-D map will display showing positions of allies and enemies.\n"
+                + "\t- Use **w!move <user> <location>** to move characters on the map. Locations are typed as `x,y`.\n"
+                + "\t- Enemies must be in range before you can attack them. The same goes for enemies.\n"
+                + "\t- All units have **2 Mov** and cannot move through walls.\n"
+                + "\t- Use **w!endturn <user>** to prematurely end a turn. Attacking or healing will automatically end the turn.\n"
+                + "- The attack command has been reduced to **w!attack**. Physical/magic is now based on your weapon.\n"
+                + "- The **Physic** staff has been added.", true);
+        changelogEmbed.addBlankField(true);
         changelogEmbed.addField("v1.4: The Boss Update", "- **Boss battles** have been added.\n"
                 + "\t- Use **w!boss <bossname> <players...>** to join a boss battle.\n"
                 + "\t- **Cyrus** [Lv. 15] is the only battle for now, but more will be added soon.\n"
@@ -133,25 +160,12 @@ public class Bot extends ListenerAdapter {
                 + "\t- Winning a boss battle will grant special weapons.\n"
                 + "- Only stratum enemies will now take an automatic turn after an attack.\n"
                 + "- Skills **Gamble, Luna** and **Sol** have been added.", true);
-        changelogEmbed.addBlankField(true);
-        changelogEmbed.addField("v1.3: The Combat Update", "- An **enemy turn** has been added.\n"
-                + "\t- The enemy will **always retaliate** if neither units are dead after initial combat.\n"
-                + "- The combat system has been reworked (no visible effects).\n"
-                + "\t- Everything should be a lot smoother going forward.\n"
-                + "- Stratum enemies are now **limited to lv 1000**.\n"
-                + "\t- Generating higher-level enemies could hang the bot.\n"
-                + "- You are now **forced to re-calculate** if either your character or the enemy changes between calculation and conformation.\n"
-                + "- Player comparisons now work properly.\n"
-                + "- Stats for stratum enemies now display correctly.\n"
-                + "- Healing now correctly awards weapon XP.\n"
-                + "- Characters are now able to attack without confirming their previous action.\n"
-                + "- Skills that are permanently on no longer randomly display activation in combat.", true);
         changelog = changelogEmbed.build();
                 
         EmbedBuilder help = new EmbedBuilder();
         help.setTitle("Help", null);
         help.setColor(Color.blue);
-        help.setDescription("**Solace v1.4** - The Boss Update");
+        help.setDescription("**Solace v1.5**");
         help.addField("Commands", "**w!register <username>** - Registers a user."
                 + "\n**w!select <user>** - Auto-fills <user>."
                 + "\n**w!stats <user>** - Displays stats."
@@ -173,9 +187,8 @@ public class Bot extends ListenerAdapter {
         EmbedBuilder attackHelp = new EmbedBuilder();
         attackHelp.setTitle("Attack Help", null);
         attackHelp.setColor(Color.blue);
-        attackHelp.setDescription("**Solace v1.4** - The Boss Update");
-        attackHelp.addField("Commands", "\n**w!attackp <user> <enemy>** - Attacks an enemy physically."
-                + "\n**w!attackm <user> <enemy>** - Attacks an enemy magically."
+        attackHelp.setDescription("**Solace v1.5**");
+        attackHelp.addField("Commands", "\n**w!attack <user> <enemy>** - Attacks an enemy."
                 + "\n**w!confirm** - Confirms the attack. Only used immediately after w!attackp or w!attackm.\n"
                 + "\nTo train against stratum units, replace the enemy name with \"stratum\"+<level>."
                 + "\nStratum enemies can be then attacked using their name.\n"
@@ -183,7 +196,9 @@ public class Bot extends ListenerAdapter {
                 + "\n**w!bosses** - Displays a list of boss battles."
                 + "\n**w!rooms** - Diplays a list of rooms."
                 + "\n**w!boss <bossname> <players...>** - Creates a room to fight a boss battle."
-                + "\n**w!join <bossname> <players...>** - Joins a room, if the room exists and is not full.", true);
+                + "\n**w!join <bossname> <players...>** - Joins a room, if the room exists and is not full."
+                + "\n**w!move <user> <location>** - Moves a character."
+                + "\n**w!endturn <user>** - Ends the user's turn.", true);
         attackHelp.setFooter("Created by @WillFlame#5739", null);
         attackHelpEmbed = attackHelp.build();
         

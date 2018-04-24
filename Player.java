@@ -131,6 +131,10 @@ public class Player {
     public boolean checkSame(Player p) {
         return ((weapon == p.weapon) && (stats.chp == p.stats.chp) && (stats.lvl == stats.lvl));
     }
+    
+    public boolean isBoss() {
+        return true;
+    }
 }
 
 class Boss extends Player {
