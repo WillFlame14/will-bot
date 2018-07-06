@@ -63,10 +63,10 @@ public class AttackPreview extends Attack{
             if((BossBattle.inboss.contains(p) && !(e instanceof Boss)) || (!BossBattle.inboss.contains(p) && e instanceof Boss)) {
                 throw new ValidationException("You can only attack bosses in boss battles.");
             }
-            if((BossBattle.inboss.contains(p) && BossBattle.deadBosses.get(BossBattle.toBoss.get(p)).contains(e))) {
+            if(BossBattle.inboss.contains(p) && BossBattle.deadBosses.get(BossBattle.toBoss.get(p)).contains(e)) {
                 throw new ValidationException("That boss has already been defeated.");
             }
-            if(BossBattle.battles.get(BossBattle.toBoss.get(p)).getDistance(p, e) != p.weapon.range) {
+            if(BossBattle.inboss.contains(p) && BossBattle.battles.get(BossBattle.toBoss.get(p)).getDistance(p, e) != p.weapon.range) {
                 throw new ValidationException("That unit is not in range.");
             }
             

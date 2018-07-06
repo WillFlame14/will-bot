@@ -46,7 +46,7 @@ public class Utilities{
         }
         opponent.stats.chp = opponent.stats.thp;        //fix HP values from leveling up
         Player.clearLevelUp();
-        weaponPool.add(Weapon.Fist);
+        weaponPool.add(Weapon.Fist);        //these are the possible choices put into a pool
         weaponPool.add(Weapon.BronzeSword);
         weaponPool.add(Weapon.BronzeAxe);
         weaponPool.add(Weapon.BronzeLance);

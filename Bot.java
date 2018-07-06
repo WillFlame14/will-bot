@@ -16,18 +16,19 @@ public class Bot extends ListenerAdapter {
     static JDA jda;
     static HashMap<String, Player> playermap = new HashMap<>();     //username --> player
     static HashMap<Long, Player> defaultPlayer = new HashMap<>();   //user --> defaultPlayer
-    static HashMap<String, Long> idmap = new HashMap<>();       //username --> authorid
+    static HashMap<String, Long> idmap = new HashMap<>();           //username --> authorid
     static HashMap<String, AttackSave> attacksaves = new HashMap<>();       //attacker's username --> battle stats
     static HashMap<Long, String> attackusers = new HashMap<>();     //authorid --> player + " " + enemy
     static HashMap<Long, String> enemyattackusers = new HashMap<>();     //authorid --> player + " " + enemy
     static HashMap<String, Players> enemySave = new HashMap<>();      //player + " " + enemy --> saved player stats, saved enemy stats
     static LinkedList<Category> categories = new LinkedList<>();    
-    static MessageEmbed changelog, helpEmbed, attackHelpEmbed;           //these can be MessageEmbeds since they're only generated once
+    static MessageEmbed changelog, helpEmbed, attackHelpEmbed, tagHelpEmbed;           //these can be MessageEmbeds since they're only generated once
     static EmbedBuilder statsEmbed = new EmbedBuilder();        //not MessageEmbed since will vary each generation
     static HashMap<Long, Boolean> calculated = new HashMap<>();     //authorid --> calculated?
     static ArrayList<Boss> bosses = new ArrayList<>(10);        //list of bosses
-    static ArrayList<Map> maps = new ArrayList<>(10);       //list of maps
-    static String token;
+    static ArrayList<Map> maps = new ArrayList<>(10);        //list of maps
+    static HashMap<String, Tag> tags = new HashMap<>();      //list of tags
+    static String token, globalDescription = "Solace v1.6";
     
     public Bot() throws Exception {
         jda = new JDABuilder(AccountType.BOT).setToken(token).buildBlocking();
@@ -92,8 +93,11 @@ public class Bot extends ListenerAdapter {
                     token = temp[0];
                     continue;
                 }
-                if(temp[0].contains("*g^")) {       //defaultPlayer stuff, everything else should be done by now
+                if(temp[0].contains("*g^")) {       //filling defaultPlayer
                     defaultPlayer.put(Long.parseLong(temp[0].substring(3)), playermap.get(temp[1]));
+                }
+                else if(temp[0].contains("^t*")) {       //filling tags
+                    tags.put(temp[0].substring(3), new Tag(Long.parseLong(temp[2]), temp[1]));
                 }
                 else {
                     if(temp[0].contains("Fighter")) {       //don't save stratum enemies as the file will fill up very quickly
@@ -144,6 +148,13 @@ public class Bot extends ListenerAdapter {
         changelogEmbed.setTitle("Solace Changelog", null);
         changelogEmbed.setColor(Color.red);
         changelogEmbed.setDescription("The full changelog can be found on github.");
+        changelogEmbed.addField("v1.6: The Tag Update", "- **Tags** have been added.\n"
+                + "\t- Tags can be used to incur a specific reaction from the bot.\n"
+                + "\t- Use **w!taghelp** for help on using tags.\n"
+                + "\t- **{args}**, **{args;n}** and **{user}** fields have been added.\n"
+                + "- **Adept** no longer activates on itself.\n"
+                + "- Fixed some naming issues in the combat log.", true);
+        changelogEmbed.addBlankField(true);
         changelogEmbed.addField("v1.5: The Map Update", "- **Maps** have been added to boss battles.\n"
                 + "\t- During a boss battle, a 2-D map will display showing positions of allies and enemies.\n"
                 + "\t- Use **w!move <user> <location>** to move characters on the map. Locations are typed as `x,y`.\n"
@@ -152,21 +163,14 @@ public class Bot extends ListenerAdapter {
                 + "\t- Use **w!endturn <user>** to prematurely end a turn. Attacking or healing will automatically end the turn.\n"
                 + "- The attack command has been reduced to **w!attack**. Physical/magic is now based on your weapon.\n"
                 + "- The **Physic** staff has been added.", true);
-        changelogEmbed.addBlankField(true);
-        changelogEmbed.addField("v1.4: The Boss Update", "- **Boss battles** have been added.\n"
-                + "\t- Use **w!boss <bossname> <players...>** to join a boss battle.\n"
-                + "\t- **Cyrus** [Lv. 15] is the only battle for now, but more will be added soon.\n"
-                + "\t- Use **w!bosses** to see a list of bosses, and **w!rooms** to see a list of rooms.\n"
-                + "\t- Winning a boss battle will grant special weapons.\n"
-                + "- Only stratum enemies will now take an automatic turn after an attack.\n"
-                + "- Skills **Gamble, Luna** and **Sol** have been added.", true);
         changelog = changelogEmbed.build();
                 
         EmbedBuilder help = new EmbedBuilder();
         help.setTitle("Help", null);
         help.setColor(Color.blue);
-        help.setDescription("**Solace v1.5**");
-        help.addField("Commands", "**w!register <username>** - Registers a user."
+        help.setDescription(globalDescription);
+        help.addField("Commands", 
+                  "**w!register <username>** - Registers a user."
                 + "\n**w!select <user>** - Auto-fills <user>."
                 + "\n**w!stats <user>** - Displays stats."
                 + "\n**w!reroll <user>** - Rerolls stats."
@@ -178,7 +182,8 @@ public class Bot extends ListenerAdapter {
                 + "\n**w!skills** - Shows a list of skills."
                 + "\n**w!assign <user> <skill>** - Assigns a skill."
                 + "\n**w!remove <user>** - Removes a skill.\n"
-                + "\n**w!attackhelp** - Shows more help regarding attacks.\n"
+                + "\n**w!attackhelp** - Shows help regarding attacks."
+                + "\n**w!taghelp** - Shows help regarding tags.\n"
                 + "\n**w!ping** - Pong!"
                 + "\n**w!roll** - Rolls a 6-sided die.", true);
         help.setFooter("Created by @WillFlame#5739", null);
@@ -187,8 +192,9 @@ public class Bot extends ListenerAdapter {
         EmbedBuilder attackHelp = new EmbedBuilder();
         attackHelp.setTitle("Attack Help", null);
         attackHelp.setColor(Color.blue);
-        attackHelp.setDescription("**Solace v1.5**");
-        attackHelp.addField("Commands", "\n**w!attack <user> <enemy>** - Attacks an enemy."
+        attackHelp.setDescription(globalDescription);
+        attackHelp.addField("Commands", 
+                  "\n**w!attack <user> <enemy>** - Attacks an enemy."
                 + "\n**w!confirm** - Confirms the attack. Only used immediately after w!attackp or w!attackm.\n"
                 + "\nTo train against stratum units, replace the enemy name with \"stratum\"+<level>."
                 + "\nStratum enemies can be then attacked using their name.\n"
@@ -202,20 +208,31 @@ public class Bot extends ListenerAdapter {
         attackHelp.setFooter("Created by @WillFlame#5739", null);
         attackHelpEmbed = attackHelp.build();
         
-        Stats g = new Stats();
-        AttackPreview gg = new AttackPreview();
-        AttackConfirm ggg = new AttackConfirm();
-        Heal gggg = new Heal();
-        BotSystem ggggg = new BotSystem();
+        EmbedBuilder tagHelp = new EmbedBuilder();
+        tagHelp.setTitle("Tag Help", null);
+        tagHelp.setColor(Color.blue);
+        tagHelp.setDescription(globalDescription);
+        tagHelp.addField("Commands", 
+                  "\n**w!tag create <name> <contents>** - Creates a tag."
+                + "\n**w!tag edit <name> <contents>** - Overwrites a tag."
+                + "\n**w!tag delete <name>** - Deletes a tag."
+                + "\n**w!tags** - Dispalys a list of tags.", true);
+        tagHelp.addField("Fields", 
+                  "\n**{args}** - Returns an argument provided. (i.e. w!tag <name> <args>)"
+                + "\n**{args;n}** - Returns the nth argument provided."
+                + "\n**{user}** - Returns the user's username.", true);
+        tagHelp.setFooter("Created by @WillFlame#5739", null);
+        tagHelpEmbed = tagHelp.build();
         
         categories.add(Skill.NA);
-        categories.add(g);
-        categories.add(gg);
-        categories.add(ggg);
+        categories.add(new Stats());
+        categories.add(new AttackPreview());
+        categories.add(new AttackConfirm());
         categories.add(Weapon.NA);
-        categories.add(gggg);
-        categories.add(ggggg);
+        categories.add(new Heal());
+        categories.add(new BotSystem());
         categories.add(new BossBattle());
+        categories.add(new Tags());
         Utilities.init();
         
         Boss boss1 = new Boss("Cyrus", new Stats(49, 49, 30, 20, 23, 20, 22, 30, 18, 25, 0), Weapon.SteelAxe, Skill.Luna, -1, 0);
@@ -242,13 +259,21 @@ public class Bot extends ListenerAdapter {
                 }
                 Object[] defaults1 = defaultPlayer.keySet().toArray();
                 Object[] defaults2 = defaultPlayer.values().toArray();
-                for(int i = 0; i < defaults1.length - 1; i++) {
+                for(int i = 0; i < defaults1.length; i++) {
                     Player p = (Player)defaults2[i];
                     writer.write("*g^" + defaults1[i] + ",.," + p.username);
                     writer.newLine();
                 }
-                if(!defaultPlayer.isEmpty()) {      //no dangling newline
-                    writer.write("*g^" + defaults1[defaults1.length - 1] + ",.," + ((Player)defaults2[defaults2.length - 1]).username);
+                Object[] tags1 = tags.keySet().toArray();
+                Object[] tags2 = tags.values().toArray();
+                for(int i = 0; i < tags1.length - 1; i++) {
+                    Tag t = (Tag)tags2[i];
+                    writer.write("^t*" + tags1[i] + ",.," + t.contents + ",.," + t.userid);
+                    writer.newLine();
+                }
+                if(!tags.isEmpty()) {      //no dangling newline
+                    Tag t = (Tag)tags2[tags2.length - 1];
+                    writer.write("^t*" + tags1[tags1.length - 1] + ",.," + t.contents + ",.," + t.userid);
                 }
             }
         }

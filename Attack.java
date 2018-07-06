@@ -180,18 +180,19 @@ public abstract class Attack implements Category{
     }
     
     protected static EmbedBuilder battleResult(long id, boolean playerPhase) {
-        assignSavedValues(playerPhase?Bot.attacksaves.get(Bot.attackusers.get(id)):Bot.attacksaves.get(Bot.enemyattackusers.get(id)));
-        Bot.enemySave.remove(player + " " + enemy);
+        //set all the local variables to the save
+        assignSavedValues(playerPhase?Bot.attacksaves.get(Bot.attackusers.get(id)):Bot.attacksaves.get(Bot.enemyattackusers.get(id))); 
+        Bot.enemySave.remove(player + " " + enemy);     //remove this save from the list
         
         String username = player.username, enemyname = enemy.username, battleText = "";
         Skill eSkill = (enemySkill?enemy.skill:Skill.NA);
-        LinkedList<Integer> order = new LinkedList<>();
+        LinkedList<Integer> order = new LinkedList<>();     //order of attacks
         EmbedBuilder battleResult = new EmbedBuilder();
         battleResult.setTitle(Utilities.bold(username) + " vs. " + Utilities.bold(enemyname));
         
         //CALCULATING SKILLS - Note that Crit15, Fortune, Resolve and Wrath are already incorporated
         
-        //CALCULATING ORDER - 1 is normal attack, 2 is miss
+        //CALCULATING ORDER - 1 is normal attack, 2 is miss. Negative numbers are for the opponent.
         if(eSkill == Skill.Vantage) {       //let's just use the already calculated activateSkill().
             order.add(checkHit(enemyHitChance)?-1:-2);
         }
@@ -205,6 +206,7 @@ public abstract class Attack implements Category{
             order.add(checkHit(enemyHitChance)?-1:-2);
         }
         order.add(0);   //change of phase
+        
         //ROUND 2- Skills must be re-RNG'd, but only if they double and are not Cancel-ed
         if(playerdouble) {  
             order.add(checkHit(playerHitChance)?1:2);
@@ -220,7 +222,6 @@ public abstract class Attack implements Category{
         }
         
         boolean playercancel = false, enemycancel = false, stopper = false, adept = false;
-        int adeptSave = 0;          //TO DO: Stop Adept from activating on itself
         for(int i = 0; i < order.size(); i++) {     //all misses are already accounted for
             Skill skill = Skill.NA;
             if(null != order.get(i)) {
@@ -245,6 +246,7 @@ public abstract class Attack implements Category{
                         break;
                     case 0:
                         battleText += "\n";
+                        adept = false;
                         break;
                     case -1:
                         if(playercancel) {
@@ -270,7 +272,13 @@ public abstract class Attack implements Category{
             }
             switch(skill) {
                 case Adept:
-                    i--;
+                    if(adept) {     //this is an Adept attack - prevents Adept from activating on itself
+                        adept = false;
+                        break;
+                    }
+                    battleText += "\n" + ((order.get(i) > 0)?player.username:enemy.username) + "'s **Adept** activated!\n";     //this has to be here and not in performAttack() so it doesn't unnecessarily show up
+                    i--;        //allows them to perform the same attack
+                    adept = true;
                     break;
                 case Cancel:
                     if(order.get(i) == 1) {
@@ -288,7 +296,6 @@ public abstract class Attack implements Category{
                 return battleResult;
             }
         }
-        
         battleText += getResults();
         battleResult.addField("==============================", battleText, true);
         
@@ -338,11 +345,10 @@ public abstract class Attack implements Category{
     }
 
     private static String performAttack(String battleText, Skill skill, boolean playerAtk) {
-        boolean crit;
-        int critChance = playerAtk?playerCritChance:enemyCritChance, damage = playerAtk?playerDmg:enemyDmg;
+        int critChance = playerAtk?playerCritChance:enemyCritChance, damage = playerAtk?playerDmg:enemyDmg;     //figure out the attack stats based on who is currently attacking
         Player p = playerAtk?player:enemy;
         Player e = (!playerAtk)?player:enemy;
-        crit = critChance > Math.random() * 100;        //roll crits
+        boolean crit = critChance > Math.random() * 100;        //roll crits
         
         if(e.activateSkill() && e.skill == Skill.Pavise) {
             damage = 0;
@@ -354,7 +360,7 @@ public abstract class Attack implements Category{
         if(crit) {
             damage *= 3;
         }
-        if(skill != Skill.NA && (skill == Skill.Adept || skill == Skill.Cancel || skill == Skill.Vantage || skill == Skill.Luna || skill == Skill.Sol)) {     //some skill activated
+        if(skill != Skill.NA && (skill == Skill.Cancel || skill == Skill.Vantage || skill == Skill.Luna || skill == Skill.Sol)) {     //some skill activated
             battleText += "\n" + p.username + "'s " + Utilities.bold(skill.displayName) + " activated!\n";
         }
         
@@ -375,21 +381,24 @@ public abstract class Attack implements Category{
     protected static String getResults() {
         String results = "\n\n" + Utilities.bold(player.username) + " has **" + player.stats.chp + "/" + player.stats.thp + " HP**!"
                 + "\n" + Utilities.bold(enemy.username) + " has **" + enemy.stats.chp + "/" + enemy.stats.thp + " HP**!";
+        
+        //IF COMBAT ENDS
         if(player.stats.chp < 1 || enemy.stats.chp < 1) {
-            player = player.stats.chp < 1?player:enemy;     //in this case, player is the one who died
-            enemy = player.stats.chp < 1?enemy:player;
-            results += "\n\n" + Utilities.bold(enemy.username) + " is victorious!";
-            if(player.authorid < 0) {
-                enemy.stats.xp += Utilities.xpGained(enemy, player) * (enemy.skill == Skill.Paragon?2:1) * (enemy.skill == Skill.Blossom?0.5:1);
+            Player dead = (player.stats.chp < 1)?player:enemy;     
+            Player survived = (player.stats.chp < 1)?enemy:player;
+            results += "\n\n" + Utilities.bold(survived.username) + " is victorious!";
+            if(dead.authorid < 0) {
+                survived.stats.xp += Utilities.xpGained(survived, dead) * (survived.skill == Skill.Paragon?2:1) * (survived.skill == Skill.Blossom?0.5:1);
             }
-            if(player.username.contains("Fighter")) {       
-                Bot.playermap.remove(player.username, player);
-                Bot.idmap.remove(player.username);
+            if(dead.username.contains("Fighter")) {       
+                Bot.playermap.remove(dead.username, dead);
+                Bot.idmap.remove(dead.username);
             }
-            Player pSave = player;
+            
+            Player pSave = dead;
             try {
-                player = (Boss)player;      //remember, player is the one who died. This means a boss died.
-                int id = ((Boss)player).bossid;
+                dead = (Boss)dead;      //A boss died.
+                int id = ((Boss)dead).bossid;
                 boolean complete = true;
                 for(int i = 0; i < BossBattle.getSize(id); i++) {
                     if(BossBattle.rooms.get(id).get(i).stats.chp > 0) {
@@ -399,21 +408,21 @@ public abstract class Attack implements Category{
                 if(complete) {
                     defeatBoss = true;
                 }
-                if(!BossBattle.battles.get(id).removePlayer(player)) {        //try to remove them from the map
-                    System.out.println("Failed to remove " + player.username + ". Symbol was " + BossBattle.battles.get(id).playerValues.get(player));
+                if(!BossBattle.battles.get(id).removePlayer(dead)) {        //try to remove them from the map
+                    System.out.println("Failed to remove " + dead.username + ". Symbol was " + BossBattle.battles.get(id).playerValues.get(dead));
                 }
-                BossBattle.deadBosses.get(id).add(player);
+                BossBattle.deadBosses.get(id).add(dead);
             }
             catch(ClassCastException cce) {
-                player = pSave;
+                dead = pSave;
             }
             
-            if(BossBattle.inboss.contains(player)) {       //person who died was in a boss battle
-                int id = BossBattle.toBoss.get(player);
-                playerRemove.add(player);
-                BossBattle.rooms.get(id).remove(player);
-                BossBattle.toBoss.remove(player);
-                BossBattle.inboss.remove(player);
+            if(BossBattle.inboss.contains(dead)) {       //person who died was in a boss battle
+                int id = BossBattle.toBoss.get(dead);
+                playerRemove.add(dead);
+                BossBattle.rooms.get(id).remove(dead);
+                BossBattle.toBoss.remove(dead);
+                BossBattle.inboss.remove(dead);
                 failure = true;
                 for(Player p: BossBattle.rooms.get(id)) {     //all players are defeated?
                     if(p.authorid > 0) {        //there is still a player alive
@@ -422,12 +431,13 @@ public abstract class Attack implements Category{
                 }
             }
             
-            if(enemy.stats.xp >= Utilities.getXpLevelUp(enemy.stats.lvl) && enemy.stats.lvl < 40) {
-                levelup = enemy.username;
-                enemy.stats.xp = 0;
+            if(survived.stats.xp >= Utilities.getXpLevelUp(survived.stats.lvl) && survived.stats.lvl < 40) {
+                levelup = survived.username;
+                survived.stats.xp = 0;
             }
         }
         
+        //IF COMBAT DOES NOT END
         int[] pranks = player.ranks.toArray();      //xp starts at index 7
         int[] eranks = enemy.ranks.toArray();
         for(int i = 0; i < 7; i++) {
