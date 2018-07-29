@@ -56,7 +56,8 @@ public class BossBattle implements Category {
                     moveover.put(0, new ArrayList<>());
                     deadBosses.put(0, new ArrayList<>());
                     bossMove.put(0, new ArrayList<>());
-                    Map battle = Bot.maps.get(0).duplicate();
+//                    Map battle = Bot.maps.get(0).duplicate();
+                    Map battle = new Map().fill();
                     battle.setCharacter(Bot.bosses.get(0), '1');        //Cyrus is 1
                     battle.setCharacter(Bot.bosses.get(1), '2');        //Troubadour is 2
                     battle.setCharacter(Bot.playermap.get(args.get(1)), 'A');        //P1 is A
@@ -207,7 +208,7 @@ public class BossBattle implements Category {
             catch(Exception e) {
                 throw new ValidationException("Your destination was not recognized. Coordinates should be given as `x,y`.");
             }
-            if(x < 1 || x > 6 || y < 1 || y > 8) {      //invalid location - x and y are user input, and so are in Cartesian
+            if(x < 1 || x > Map.WIDTH || y < 1 || y > Map.HEIGHT) {      //invalid location - x and y are user input, and so are in Cartesian
                 throw new ValidationException("You did not specify a valid location to move.");
             }
             Pair original = map.getLocation(map.playerValues.get(user)).toCartesian();      //note that user inputs Cartesian coordinates, so getLocation should be in Cartesian
@@ -271,9 +272,9 @@ public class BossBattle implements Category {
             
             //BFS to find movableSpaces
             Queue<int[]> queue = new LinkedList<>();
-            boolean[][] visited = new boolean[8][6];
-            for (int k = 0; k < 8; k++) {
-                for (int j = 0; j < 6; j++) {
+            boolean[][] visited = new boolean[Map.HEIGHT][Map.WIDTH];
+            for (int k = 0; k < Map.HEIGHT; k++) {
+                for (int j = 0; j < Map.WIDTH; j++) {
                     visited[k][j] = false;
                 }
             }
@@ -289,7 +290,7 @@ public class BossBattle implements Category {
                 }
                 for (int k = -1; k <= 1; k++) {
                     for (int j = -1; j <= 1; j++) {
-                        if(array[0] + k < 0 || array[0] + k > 7 || array[1] + j < 0 || array[1] + j > 5) {      //invalid location- these are array locations, not Cartesian
+                        if(array[0] + k < 0 || array[0] + k > Map.HEIGHT - 1 || array[1] + j < 0 || array[1] + j > Map.WIDTH - 1) {      //invalid location- these are array locations, not Cartesian
                             continue;
                         }
                         if (Math.abs(k + j) == 1 && map.grid[array[0] + k][array[1] + j] == '.' && visited[array[0] + k][array[1] + j] == false) {
@@ -310,7 +311,7 @@ public class BossBattle implements Category {
                     break;
                 }
                 //HEALER
-                if (boss.weapon.staff) {
+                if (boss.weapon.weaponType == WeaponType.Staff) {
                     Player toAction = null;
                     Pair toMove = null;
                     int minHP = Integer.MAX_VALUE;
@@ -348,7 +349,7 @@ public class BossBattle implements Category {
                 int range = boss.weapon.range;
                 for(int j = -range; j <= range; j++) {
                     for(int k = -range; k <= range; k++) {
-                        if(p.x + j < 0 || p.x + j > 7 || p.y + k < 0 || p.y + k > 5) {      //invalid location- these are array locations, not Cartesian
+                        if(p.x + j < 0 || p.x + j > Map.HEIGHT - 1 || p.y + k < 0 || p.y + k > Map.WIDTH - 1) {      //invalid location- these are array locations, not Cartesian
                             continue;
                         }
                         if(Math.abs(j) + Math.abs(k) <= range && "AB".contains(map.grid[p.x + j][p.y + k] + "")) {      //location contains A or B
@@ -394,11 +395,11 @@ public class BossBattle implements Category {
     private static ArrayList<Pair> findPath(Map map, Player b, Player toAttack) {      
         Queue<Pair> queue = new LinkedList<>();
         Pair originalLocation = map.getLocation(map.playerValues.get(b));
-        boolean[][] visited = new boolean[8][6];
-        Pair[][] last = new Pair[8][6];     //stores where the path came from
+        boolean[][] visited = new boolean[Map.HEIGHT][Map.WIDTH];
+        Pair[][] last = new Pair[Map.HEIGHT][Map.WIDTH];     //stores where the path came from
         last[originalLocation.x][originalLocation.y] = new Pair(-1, -1);
-        for(int i = 0; i < 8; i++) {
-            for(int j = 0; j < 6; j++) {
+        for(int i = 0; i < Map.HEIGHT; i++) {
+            for(int j = 0; j < Map.WIDTH; j++) {
                 visited[i][j] = false;
             }
         }
@@ -410,7 +411,7 @@ public class BossBattle implements Category {
             
             for(int i = -1; i <= 1; i++) {
                 for(int j = -1; j <= 1; j++) {
-                    if(p.x + i < 0 || p.x + i > 7 || p.y + j < 0 || p.y + j > 5) {      //invalid location
+                    if(p.x + i < 0 || p.x + i > Map.HEIGHT - 1 || p.y + j < 0 || p.y + j > Map.WIDTH - 1) {      //invalid location
                         continue;
                     }
                     if(Math.abs(i + j) == 1 && visited[p.x + i][p.y + j] == false) {

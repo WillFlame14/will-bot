@@ -7,17 +7,19 @@ public class Map{
     HashMap<Character, Player> players;
     HashMap<Player, Character> playerValues;
     
+    static int HEIGHT = 15, WIDTH = 15;
+    
     public Map() {
-        grid = new char[8][6];
+        grid = new char[HEIGHT][WIDTH];
         players = new HashMap<>();
         playerValues = new HashMap<>();
     }
     
     public String toString() {
         String s = "```";
-        for(int i = 0; i < 8; i++) {
+        for(int i = 0; i < HEIGHT; i++) {
             s += "\n";
-            for(int j = 0; j < 6; j++) {
+            for(int j = 0; j < WIDTH; j++) {
                 s += grid[i][j] + " ";
             }
         }
@@ -26,8 +28,8 @@ public class Map{
     
     public Map duplicate() {
         Map duplicate = new Map();
-        for(int i = 0; i < 8; i++) {
-            for(int j = 0; j < 6; j++) {
+        for(int i = 0; i < HEIGHT; i++) {
+            for(int j = 0; j < WIDTH; j++) {
                 duplicate.grid[i][j] = grid[i][j];
             }
         }
@@ -40,8 +42,8 @@ public class Map{
     }
     
     public Pair getLocation(char s) {       //RETURNS COMP COORDINATES
-        for(int i = 0; i < 8; i++) {
-            for(int j = 0; j < 6; j++) {
+        for(int i = 0; i < HEIGHT; i++) {
+            for(int j = 0; j < WIDTH; j++) {
                 if(grid[i][j] == s) {
                     return new Pair(i, j);      
                 }
@@ -79,6 +81,51 @@ public class Map{
         grid[location.x][location.y] = '.';
         return true;
     }
+    
+    public Map fill() {     //randomly fill a map
+        for(int i = 0; i < Map.HEIGHT; i++) {
+            for(int j = 0; j < Map.WIDTH; j++) {
+                int rng = (int)(Math.random() * 100) + 1;   //1 to 100
+                if(rng <= 13) {
+                    grid[i][j] = '#';
+                }
+                else {
+                    grid[i][j] = '.';
+                }
+            }
+        }
+        int y1 = (int)(Math.random() * Map.HEIGHT), x1 = (int)(Math.random() * Map.WIDTH);
+        grid[y1][x1] = 'A';     //characters
+        int rng1 = (int)(Math.random() * 5) - 2, rng2 = (int)(Math.random() * 5) - 2;     //randomness of p2, should be near p1
+        if(rng1 == 0 && rng2 == 0) {
+            rng1 = 1;
+            rng2 = 2;
+        }
+        if(y1 + rng1 >= Map.HEIGHT) {
+            rng1 -= Map.HEIGHT;
+        }
+        else if(y1 + rng1 <= 0) {
+            rng1 += Map.HEIGHT;
+        }
+        if(x1 + rng2 >= Map.WIDTH) {
+            rng2 -= Map.WIDTH;
+        }
+        else if(x1 + rng2 <= 0) {
+            rng2 += Map.WIDTH;
+        }
+        grid[y1 + rng1][x1 + rng2] = 'B';
+        
+        while(true) {
+            int y2 = (int)(Math.random() * Map.HEIGHT), x2 = (int)(Math.random() * Map.WIDTH), y3 = (int)(Math.random() * Map.HEIGHT), x3 = (int)(Math.random() * Map.WIDTH);
+            if(grid[y2][x2] == 'A' || grid[y2][x2] == 'B' || grid[y3][x3] == 'A' || grid[y3][x3] == 'B' || (y2 == y3 && x2 == x3)) {
+                continue;
+            }
+            grid[y2][x2] = '1';
+            grid[y3][x3] = '2';
+            break;
+        }
+        return this;
+    }
 }
 
 class Pair {
@@ -92,13 +139,13 @@ class Pair {
     public Pair toCartesian() {
         int oldx = x;
         x = y + 1;
-        y = 8 - oldx;
+        y = Map.HEIGHT - oldx;
         return new Pair(x, y);
     }
     
     public Pair toComp() {
         int oldx = x;
-        x = 8 - y;      
+        x = Map.HEIGHT - y;      
         y = oldx - 1;
         return new Pair(x, y);
     }

@@ -7,8 +7,21 @@ import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
 public class BotSystem implements Category{
     
     public boolean isActionApplicable(String action) {
-        return action.equals("w!attackhelp") || action.equals("w!changelog") || action.equals("w!help") || action.equals("w!ping") || action.equals("w!register")
-                || action.equals("w!roll") || action.equals("w!say") || action.equals("w!select") || action.equals("w!users");
+        switch(action) {
+            case "w!attackhelp":
+            case "w!changelog":
+            case "w!classes":
+            case "w!help":
+            case "w!ping":
+            case "w!register":
+            case "w!roll":
+            case "w!say":
+            case "w!select":
+            case "w!users":
+                return true;
+            default:
+                return false;
+        }
     }
     
     public void response(String action, ArrayList<String> args, MessageReceivedEvent event)throws ValidationException {
@@ -20,6 +33,15 @@ public class BotSystem implements Category{
             case "w!changelog":
                 c.sendMessage(Bot.changelog).queue();
                 break;
+            case "w!classes":
+                PClass[] pclasses = PClass.values();
+                String s = "```List of Classes:\n";
+                for (int i = 1; i < pclasses.length - 1; i++) {
+                    s += pclasses[i].toString() + ", ";
+                }
+                s += pclasses[pclasses.length - 1] + "```";
+                c.sendMessage(s).queue();
+                break;    
             case "w!help":
                 c.sendMessage(Bot.helpEmbed).queue();
                 break;
@@ -29,25 +51,35 @@ public class BotSystem implements Category{
             case "w!roll":
                 c.sendMessage("🎲You rolled a: " + (int)((Math.random() * 6) + 1)).queue();
                 break;
-            case "w!register":      //add class types?
+            case "w!register":
                 if(!args.isEmpty()) {
                     String name = args.get(0);
                     if(Bot.playermap.containsKey(name)) {
                         throw new ValidationException("This username is already in use. Please try again.");
                     }
-                    if(name.contains(" ")) {
-                        throw new ValidationException("A username cannot contain spaces. Please try again."); 
+                    PClass pclass = PClass.Hero;
+                    Player p;
+                    if(args.size() > 1) {
+                        try {
+                            pclass = PClass.valueOf(args.get(1));
+                            p = new Player(name, new Stats(pclass), new Growths(pclass), Weapon.Fist, new WeaponRanks(), Skill.NA, pclass, event.getAuthor().getIdLong());
+                        }
+                        catch(IllegalArgumentException e) {
+                            throw new ValidationException("That class does not exist. Please try again. Note that usernames cannot contain spaces.");
+                        }
                     }
-                    Player p = new Player(name, new Stats(), new Growths(), Weapon.Fist, new WeaponRanks(), Skill.NA, event.getAuthor().getIdLong());
+                    else {
+                        p = new Player(name, new Stats(), new Growths(), Weapon.Fist, new WeaponRanks(), Skill.NA, pclass, event.getAuthor().getIdLong());
+                    }
                     Bot.playermap.put(args.get(0), p);
                     Bot.idmap.put(name, event.getAuthor().getIdLong());
                     Bot.calculated.put(event.getAuthor().getIdLong(), false);
-                    c.sendMessage("You have been successfully added.").queue();
+                    c.sendMessage(name + " has been successfully added.").queue();
                     c.sendMessage(p.showStats().build()).queue();
                     Bot.update();       //update config.txt
                 }
                 else {        
-                    throw new ValidationException("You did not specify a username to register.");  
+                    throw new ValidationException("The correct format is `w!register <username> [<class>].`");  
                 }
                 break;
             case "w!say":
@@ -55,8 +87,8 @@ public class BotSystem implements Category{
                 if(args.contains("w!say")) {
                     throw new ValidationException("No crashing the bot. :C");
                 }
-                for(String s: args) {
-                    msg += s + " ";
+                for(String st: args) {
+                    msg += st + " ";
                 }
                 c.sendMessage(msg).queue();
                 break;
@@ -81,8 +113,8 @@ public class BotSystem implements Category{
                 for(int i = 0; i < nameset.length - 1; i++) {
                     names += nameset[i].toString() + ", ";
                 }
-                names += nameset[nameset.length - 1];
-                c.sendMessage("List of Registered Users:\n" + names).queue();
+                names += nameset[nameset.length - 1] + "```";
+                c.sendMessage("```List of Registered Users:\n" + names).queue();
                 break;
         }
     }

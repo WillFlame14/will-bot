@@ -22,50 +22,22 @@ public abstract class Attack implements Category{
         player = p;
         enemy = e;
         phys = physical;
+        
         pAttackSpeed = player.stats.spd + ((player.stats.str - player.weapon.wt < 0) ? 0 : (player.stats.str - player.weapon.wt));
         eAttackSpeed = enemy.stats.spd + ((enemy.stats.str - enemy.weapon.wt < 0) ? 0 : (enemy.stats.str - enemy.weapon.wt));
         pAttackSkill = player.stats.skl;
         eAttackSkill = enemy.stats.skl;
         EmbedBuilder battleCalc = new EmbedBuilder();
-        int triangle = 0;
+        int triangle;
         String arrow1 = "", arrow2 = "";
-        switch(player.weapon.colour) {
-            case RED:
-                if(enemy.weapon.colour.equals(Colour.BLUE)) {
-                    triangle = -10;
-                    arrow1 = "⬇";
-                    arrow2 = "⬆";
-                }
-                else if (enemy.weapon.colour.equals(Colour.GREEN)){
-                    triangle = 10;
-                    arrow1 = "⬆";
-                    arrow2 = "⬇";
-                }
-                break;
-            case GREEN:
-                if(enemy.weapon.colour.equals(Colour.BLUE)) {
-                    triangle = 10;
-                    arrow1 = "⬆";
-                    arrow2 = "⬇";
-                }
-                else if (enemy.weapon.colour.equals(Colour.RED)){
-                    triangle = -10;
-                    arrow1 = "⬇";
-                    arrow2 = "⬆";
-                }
-                break;
-            case BLUE:
-                if(enemy.weapon.colour.equals(Colour.GREEN)) {
-                    triangle = -10;
-                    arrow1 = "⬇";
-                    arrow2 = "⬆";
-                }
-                else if (enemy.weapon.colour.equals(Colour.RED)){
-                    triangle = 10;
-                    arrow1 = "⬆";
-                    arrow2 = "⬇";
-                }
-                break;
+        triangle = checkWeaponAdvantage(player.weapon.weaponType, enemy.weapon.weaponType);
+        if(triangle == -10) {
+            arrow1 = "⬇";
+            arrow2 = "⬆";
+        }
+        else if(triangle == 10) {
+            arrow1 = "⬆";
+            arrow2 = "⬇";
         }
         playerCritChance = (player.stats.skl / 2) + player.weapon.crt - enemy.stats.lck;
         enemyCritChance = (enemy.stats.skl / 2) + enemy.weapon.crt - player.stats.lck;
@@ -88,6 +60,18 @@ public abstract class Attack implements Category{
         boolean playerHighlight = false, enemyHighlight = false;
         playerSkill = player.activateSkill();
         enemySkill = enemy.activateSkill();
+        if(playerSkill && player.skill == Skill.Resolve) {      //Resolve needs to be calculated first bc it affects hit chances
+            pAttackSpeed *= 1.5;
+            pAttackSkill *= 1.5;
+            playerHighlight = true;
+        }
+        if(enemySkill && enemy.skill == Skill.Resolve) {
+            eAttackSpeed *= 1.5;
+            eAttackSkill *= 1.5;
+            enemyHighlight = true;
+        }
+        playerHitChance = (player.stats.skl * 2 + player.stats.lck + player.weapon.accuracy) - (eAttackSpeed * 2 + enemy.stats.lck) + triangle;
+        enemyHitChance = (enemy.stats.skl * 2 + enemy.stats.lck + enemy.weapon.accuracy) - (pAttackSpeed * 2 + player.stats.lck) - triangle;
         
         if(playerSkill) {
             switch (player.skill) {
@@ -103,11 +87,6 @@ public abstract class Attack implements Category{
                     playerHitChance /= 2;
                     playerCritChance *= 2;
                     break;
-                case Resolve:
-                    pAttackSpeed *= 1.5;
-                    pAttackSkill *= 1.5;
-                    playerHighlight = true;
-                    break;
                 case Wrath:
                     playerCritChance += 50;
                     playerHighlight = true;
@@ -122,17 +101,12 @@ public abstract class Attack implements Category{
                     enemyHighlight = true;
                     break;
                 case Fortune:
-                    enemyCritChance = 0;
+                    playerCritChance = 0;
                     enemyHighlight = true;
                     break;
                 case Gamble:
                     playerHitChance /= 2;
                     playerCritChance *= 2;
-                    break;
-                case Resolve:
-                    eAttackSpeed *= 1.5;
-                    eAttackSkill *= 1.5;
-                    enemyHighlight = true;
                     break;
                 case Wrath:
                     enemyCritChance += 50;
@@ -140,8 +114,7 @@ public abstract class Attack implements Category{
                     break;
             }
         }
-        playerHitChance += (player.stats.skl * 2 + player.stats.lck + player.weapon.accuracy) - (eAttackSpeed * 2 + enemy.stats.lck) + triangle;
-        enemyHitChance += (enemy.stats.skl * 2 + enemy.stats.lck + enemy.weapon.accuracy) - (pAttackSpeed * 2 + player.stats.lck) - triangle;
+        
         if(playerHitChance < 0) 
             playerHitChance = 0;
         if(enemyHitChance < 0) 
@@ -343,6 +316,61 @@ public abstract class Attack implements Category{
             return false;
         }
     }
+    
+    private static int checkWeaponAdvantage(WeaponType pw, WeaponType ew) {
+        int triangle = 0;
+        switch(pw) {
+            case Sword:
+                if(ew.equals(WeaponType.Lance)) {
+                    triangle = -10;
+                }
+                else if (ew.equals(WeaponType.Axe)){
+                    triangle = 10;
+                }
+                break;
+            case Axe:
+                if(ew.equals(WeaponType.Lance)) {
+                    triangle = 10;
+                }
+                else if (ew.equals(WeaponType.Sword)){
+                    triangle = -10;
+                }
+                break;
+            case Lance:
+                if(ew.equals(WeaponType.Axe)) {
+                    triangle = -10;
+                }
+                else if (ew.equals(WeaponType.Sword)){
+                    triangle = 10;
+                }
+                break;
+            case Fire:    
+                if(ew.equals(WeaponType.Thunder)) {
+                    triangle = -10;
+                }
+                else if (ew.equals(WeaponType.Wind)){
+                    triangle = 10;
+                }
+                break;
+            case Wind:    
+                if(ew.equals(WeaponType.Fire)) {
+                    triangle = -10;
+                }
+                else if (ew.equals(WeaponType.Thunder)){
+                    triangle = 10;
+                }
+                break; 
+            case Thunder:    
+                if(ew.equals(WeaponType.Wind)) {
+                    triangle = -10;
+                }
+                else if (ew.equals(WeaponType.Fire)){
+                    triangle = 10;
+                }
+                break;    
+        }
+        return triangle;
+    }
 
     private static String performAttack(String battleText, Skill skill, boolean playerAtk) {
         int critChance = playerAtk?playerCritChance:enemyCritChance, damage = playerAtk?playerDmg:enemyDmg;     //figure out the attack stats based on who is currently attacking
@@ -390,7 +418,7 @@ public abstract class Attack implements Category{
             if(dead.authorid < 0) {
                 survived.stats.xp += Utilities.xpGained(survived, dead) * (survived.skill == Skill.Paragon?2:1) * (survived.skill == Skill.Blossom?0.5:1);
             }
-            if(dead.username.contains("Fighter")) {       
+            if(dead.authorid < 0) {       
                 Bot.playermap.remove(dead.username, dead);
                 Bot.idmap.remove(dead.username);
             }
@@ -463,29 +491,28 @@ public abstract class Attack implements Category{
             return;
         }
         int exp = p.weapon.wex * (p.skill == Skill.Discipline?2:1);
-        switch(p.weapon.colour) {
-            case RED:
+        switch(p.weapon.weaponType) {
+            case Sword:
                 p.ranks.swordx += exp;
                 break;
-            case GREEN:
+            case Axe:
                 p.ranks.axex += exp;
                 break;
-            case BLUE:
+            case Lance:
                 p.ranks.lancex += exp;
                 break;
-            default:
-                if(p.weapon.staff) {
-                    p.ranks.staffx += exp;
-                }
-                else if(p.weapon.displayName.toLowerCase().contains("fire")) {
-                    p.ranks.firex += exp;
-                }
-                else if(p.weapon.displayName.toLowerCase().contains("wind")) {
-                    p.ranks.firex += exp;
-                }
-                else if(p.weapon.displayName.toLowerCase().contains("thunder")) {
-                    p.ranks.firex += exp;
-                }
+            case Staff:
+                p.ranks.staffx += exp;
+                break;
+            case Fire:
+                p.ranks.firex += exp;
+                break;
+            case Wind:
+                p.ranks.windx += exp;
+                break;
+            case Thunder:
+                p.ranks.firex += exp;
+                break;
         }
     }
 }

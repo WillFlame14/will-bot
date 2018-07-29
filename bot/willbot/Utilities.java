@@ -3,15 +3,6 @@ package bot.willbot;
 import java.util.*;
 
 public class Utilities{
-    static ArrayList<Player> generics = new ArrayList<>();
-    
-    public static void init() {
-                                              //chp, thp, str, mag, spd, def, res, skl, lck, lvl, xp
-        generics.add(new Player("Fighter", new Stats(18, 18, 11, 5, 5, 6, 3, 4, 6, 1, 0), new Growths(), Weapon.NA, new WeaponRanks(), Skill.NA, -1));
-        for(Player p: generics) {
-            p.growths.hp = 85;
-        }
-    }
     
     public static String bold(String s) {
         return "**" + s + "**";
@@ -34,10 +25,12 @@ public class Utilities{
         if(level > 1000) {
             level = 1000;
         }
-        Player opponent = generics.get((int)(Math.random() * generics.size())).duplicate();
+        PClass pclass = PClass.roll();
+        Player opponent = new Player(pclass.name(), new Stats(pclass), new Growths(pclass), Weapon.NA, new WeaponRanks(), Skill.NA, pclass, -1);
         long identifier = (int)(Math.random() * 10000) + 1;
         opponent.username += "" + identifier;      //add identifier
-        opponent.authorid = identifier;
+        opponent.authorid *= identifier;
+        Weapon[] weapons = Weapon.values();
         ArrayList<Weapon> weaponPool = new ArrayList<>();
         ArrayList<Skill> skillPool = new ArrayList<>();
         level += (int)(Math.random() * 5) - 2;
@@ -46,42 +39,25 @@ public class Utilities{
         }
         opponent.stats.chp = opponent.stats.thp;        //fix HP values from leveling up
         Player.clearLevelUp();
-        weaponPool.add(Weapon.Fist);        //these are the possible choices put into a pool
-        weaponPool.add(Weapon.BronzeSword);
-        weaponPool.add(Weapon.BronzeAxe);
-        weaponPool.add(Weapon.BronzeLance);
-        weaponPool.add(Weapon.IronSword);
-        weaponPool.add(Weapon.IronAxe);
-        weaponPool.add(Weapon.IronLance);
-        weaponPool.add(Weapon.Heal);
-        weaponPool.add(Weapon.Fire);
-        weaponPool.add(Weapon.Wind);
-        weaponPool.add(Weapon.Thunder);
+        for(int i = 0; i < weapons.length; i++) {
+            if(opponent.pclass.usableWeapons.contains(weapons[i].weaponType)) {
+                if((level / 10) >= weapons[i].rank && (int)(level / 10) - weapons[i].rank < 3) {  //needs to be at level, but not 3+ lv
+                    weaponPool.add(weapons[i]);
+                }
+            }
+        }
         skillPool.add(Skill.NA);
         skillPool.add(Skill.NA);
         skillPool.add(Skill.NA);
         skillPool.add(Skill.NA);
         if(level > 10) {
-            weaponPool.add(Weapon.SteelSword);
-            weaponPool.add(Weapon.SteelAxe);
-            weaponPool.add(Weapon.SteelLance);
-            weaponPool.add(Weapon.Elfire);
-            weaponPool.add(Weapon.Elwind);
-            weaponPool.add(Weapon.Elthunder);
-            weaponPool.add(Weapon.Mend);
             skillPool.add(Skill.Crit15);
         }
         if(level > 20) {
-            weaponPool.remove(Weapon.BronzeSword);
-            weaponPool.remove(Weapon.BronzeAxe);
-            weaponPool.remove(Weapon.BronzeLance);
-            weaponPool.remove(Weapon.Fire);
-            weaponPool.remove(Weapon.Wind);
-            weaponPool.remove(Weapon.Thunder);
-            weaponPool.remove(Weapon.Heal);
             skillPool.add(Skill.NA);
             skillPool.add(Skill.Vantage);
         }
+        opponent.stats.lvl = level;
         opponent.weapon = weaponPool.get((int)(Math.random() * weaponPool.size()));
         opponent.skill = skillPool.get((int)(Math.random() * skillPool.size()));
         Bot.playermap.put(opponent.username, opponent);

@@ -1,13 +1,14 @@
 package bot.willbot;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import net.dv8tion.jda.core.entities.MessageChannel;
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
 
 public class Stats implements Category{
     int lvl, xp, chp, thp, str, mag, spd, def, res, skl, lck;
     
-    public Stats(int[] stats) {
+    public Stats(int[] stats) {     //stratum enemies, bosses
         chp = stats[0];
         thp = stats[1];
         str = stats[2];
@@ -21,48 +22,33 @@ public class Stats implements Category{
         xp = stats[10];
     }
     
-    public Stats(int chp, int thp, int str, int mag, int spd, int def, int res, int skl, int lck, int lvl, int xp) {
-        this.chp = chp;
-        this.thp = thp;
-        this.str = str;
-        this.mag = mag;
-        this.spd = spd;
-        this.def = def;
-        this.res = res;
-        this.skl = skl;
-        this.lck = lck;
-        this.lvl = lvl;
-        this.xp = xp;
-    }
-    
-    public Stats() {    //generating player characters only
-        str = (int)(Math.random() * 8) + 3;
-        mag = (int)(Math.random() * 8) + 3;
-        spd = (int)(Math.random() * 16);
-        def = (int)(Math.random() * 7) + 2;
-        res = (int)(Math.random() * 7) + 2;
-        skl = (int)(Math.random() * 20) + 1;
-        lck = (int)(Math.random() * 20) + 1;
+    public Stats(PClass pclass) {  //player character with class selected
+        int[] stats = assignVariation(Arrays.copyOf(pclass.stats, pclass.stats.length));
+        chp = stats[0];
+        thp = stats[0];
+        str = stats[1];
+        mag = stats[2];
+        spd = stats[3];
+        def = stats[4];
+        res = stats[5];
+        skl = stats[6];
+        lck = stats[7];
         lvl = 1;
         xp = 0;
-        thp = 100 + (int)(Math.random() * 4) - str - mag - spd - def - res - skl - lck;
-        chp = thp;
     }
     
-    public int[] toArray() {
-        int[] stats = new int[11];
-        stats[0] = chp;
-        stats[1] = thp;
-        stats[2] = str;
-        stats[3] = mag;
-        stats[4] = spd;
-        stats[5] = def;
-        stats[6] = res;
-        stats[7] = skl;
-        stats[8] = lck;
-        stats[9] = lvl;
-        stats[10] = xp;
-        return stats;
+    public Stats() {    //player character with no class selected
+        str = (int)(Math.random() * 4) + 3;
+        mag = (int)(Math.random() * 6);
+        spd = (int)(Math.random() * 8) + 2;
+        def = (int)(Math.random() * 5) + 1;
+        res = (int)(Math.random() * 7);
+        skl = (int)(Math.random() * 5) + 1;
+        lck = (int)(Math.random() * 7);
+        lvl = 1;
+        xp = 0;
+        thp = 45 + (int)(Math.random() * 4) - str - mag - spd - def - res - skl - lck;
+        chp = thp;
     }
     
     public boolean isActionApplicable(String action) {
@@ -71,7 +57,7 @@ public class Stats implements Category{
     
     public void response(String action, ArrayList<String> args, MessageReceivedEvent event)throws ValidationException {
         MessageChannel c = event.getChannel();
-        if(action.equals("w!stats")) {        //w!stats <user>
+        if(action.equals("w!stats")) {        //w!growths <user>
             if (!args.isEmpty()) {
                 if (!Bot.playermap.containsKey(args.get(0))) {
                     c.sendMessage("You did not specify a valid user.").queue();
@@ -124,12 +110,47 @@ public class Stats implements Category{
             }   
         }
     }
+    
+    private static int[] assignVariation(int[] stats) {
+        for(int i = 0; i < 4; i++) {
+            int rng = (int)(Math.random() * 8), value = 1;
+            if(i%2 != 0) {  //bane
+                value = -1;
+            }
+            if(i >= 2) {    //double
+                value *= 2;
+            }
+            stats[rng] += value;
+        }
+        for(int i = 0; i < stats.length; i++) {       //boundary checks
+            if(stats[i] < 0) {
+                stats[i] = 0;
+            }
+        }
+        return stats;
+    }
+    
+    public int[] toArray() {
+        int[] stats = new int[11];
+        stats[0] = chp;
+        stats[1] = thp;
+        stats[2] = str;
+        stats[3] = mag;
+        stats[4] = spd;
+        stats[5] = def;
+        stats[6] = res;
+        stats[7] = skl;
+        stats[8] = lck;
+        stats[9] = lvl;
+        stats[10] = xp;
+        return stats;
+    }
 }
 
 class Growths{
     int hp, str, mag, spd, def, res, skl, lck;
     
-    public Growths(int[] stats) {
+    public Growths(int[] stats) {       //stratum enemies, bosses
         hp = stats[0];
         str = stats[1];
         mag = stats[2];
@@ -140,11 +161,45 @@ class Growths{
         lck = stats[7];
     }
     
-    public Growths() {    
-        str = (int)(Math.random() * 81) + 5;
-        mag = (int)(Math.random() * 81) + 5;
-        spd = (int)(Math.random() * 81) + 5;
-        if(str + mag + spd > 180) {
+    public Growths(PClass pclass) {     //player characters with class selected 
+        int[] growths = assignVariation(pclass.growths);
+        hp = growths[0];
+        str = growths[1];
+        mag = growths[2];
+        spd = growths[3];
+        def = growths[4];
+        res = growths[5];
+        skl = growths[6];
+        lck = growths[7];
+    }
+    
+    private static int[] assignVariation(int[] growths) {
+        for(int i = 0; i < 4; i++) {
+            int rng = (int)(Math.random() * 8), value = 10;
+            if(i%2 != 0) {  //bane
+                value = -10;
+            }
+            if(i >= 2) {    //double
+                value *= 2;
+            }
+            growths[rng] += value;
+        }
+        for(int i = 0; i < growths.length; i++) {       //boundary checks
+            if(growths[i] < 5) {
+                growths[i] = 5;
+            }
+            else if(growths[i] > 95) {
+                growths[i] = 95;
+            }
+        }
+        return growths;
+    }
+    
+    public Growths() {          //player characters with no class selected
+        str = (int)(Math.random() * 71) + 5;
+        mag = (int)(Math.random() * 71) + 5;
+        spd = (int)(Math.random() * 71) + 5;
+        if(str + mag + spd > 150) {
             str -= 10;
             mag -= 10;
             spd -= 10;
@@ -154,9 +209,9 @@ class Growths{
             mag += 10 + (int)(Math.random() * 41);
             spd += 10 + (int)(Math.random() * 41);
         }
-        def = (int)(Math.random() * 81) + 5;
-        res = (int)(Math.random() * 81) + 5;
-        if(str + mag + spd + def + res > 280) {
+        def = (int)(Math.random() * 71) + 5;
+        res = (int)(Math.random() * 71) + 5;
+        if(str + mag + spd + def + res > 230) {
             str -= 10;
             mag -= 10;
             spd -= 10;
@@ -170,9 +225,9 @@ class Growths{
             def += 10 + (int)(Math.random() * 31);
             res += 10 + (int)(Math.random() * 31);
         }
-        skl = (int)(Math.random() * 81) + 5;
-        lck = (int)(Math.random() * 81) + 5;
-        while(str + mag + spd + def + res + skl + lck > 395) {
+        skl = (int)(Math.random() * 71) + 5;
+        lck = (int)(Math.random() * 71) + 5;
+        while(str + mag + spd + def + res + skl + lck > 325) {
             str -= 5 + (int)(Math.random() * 16);
             mag -= 5 + (int)(Math.random() * 16);
             spd -= 5 + (int)(Math.random() * 16);
@@ -181,7 +236,7 @@ class Growths{
             skl -= 5 + (int)(Math.random() * 16);
             lck -= 5 + (int)(Math.random() * 16);
         }
-        while(str + mag + spd + def + res + skl + lck < 300) {
+        while(str + mag + spd + def + res + skl + lck < 230) {
             str += 5 + (int)(Math.random() * 16);
             mag += 5 + (int)(Math.random() * 16);
             spd += 5 + (int)(Math.random() * 16);
@@ -206,34 +261,34 @@ class Growths{
         if(lck < 5)
             lck = 5;
         //
-        if(str > 95)
-            str = 95;
-        if(mag > 95)
-            mag = 95;
-        if(spd > 95)
-            spd = 95;
-        if(def > 95)
-            def = 95;
-        if(res > 95)
-            res = 95;
-        if(skl > 95)
-            skl = 95;
-        if(lck > 95)
-            lck = 95;
-        hp = 400 + (int)(Math.random() * 20) - str - mag - spd - def - res - skl - lck;
+        if(str > 90)
+            str = 90;
+        if(mag > 90)
+            mag = 90;
+        if(spd > 90)
+            spd = 90;
+        if(def > 90)
+            def = 90;
+        if(res > 90)
+            res = 90;
+        if(skl > 90)
+            skl = 90;
+        if(lck > 80)
+            lck = 80;
+        hp = 330 + (int)(Math.random() * 20) - str - mag - spd - def - res - skl - lck;
     }
     
     public int[] toArray() {
-        int[] stats = new int[8];
-        stats[0] = hp;
-        stats[1] = str;
-        stats[2] = mag;
-        stats[3] = spd;
-        stats[4] = def;
-        stats[5] = res;
-        stats[6] = skl;
-        stats[7] = lck;
-        return stats;
+        int[] growths = new int[8];
+        growths[0] = hp;
+        growths[1] = str;
+        growths[2] = mag;
+        growths[3] = spd;
+        growths[4] = def;
+        growths[5] = res;
+        growths[6] = skl;
+        growths[7] = lck;
+        return growths;
     }
 }
 

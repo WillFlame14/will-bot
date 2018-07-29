@@ -28,7 +28,7 @@ public class Bot extends ListenerAdapter {
     static ArrayList<Boss> bosses = new ArrayList<>(10);        //list of bosses
     static ArrayList<Map> maps = new ArrayList<>(10);        //list of maps
     static HashMap<String, Tag> tags = new HashMap<>();      //list of tags
-    static String token, globalDescription = "Solace v1.6";
+    static String token, globalDescription = "Solace v1.7";
     
     public Bot() throws Exception {
         jda = new JDABuilder(AccountType.BOT).setToken(token).buildBlocking();
@@ -100,11 +100,9 @@ public class Bot extends ListenerAdapter {
                     tags.put(temp[0].substring(3), new Tag(Long.parseLong(temp[2]), temp[1]));
                 }
                 else {
-                    if(temp[0].contains("Fighter")) {       //don't save stratum enemies as the file will fill up very quickly
-                        continue;
-                    }
                     Weapon weapon = Weapon.valueOf(temp[20]);
-                    Skill skill = Skill.valueOf(temp[temp.length - 2]);
+                    Skill skill = Skill.valueOf(temp[temp.length - 3]);
+                    PClass pclass = PClass.valueOf(temp[temp.length - 2]);
                     long authorid = Long.parseLong(temp[temp.length - 1]);
                     int[] stats = new int[11];
                     int[] growths = new int[8];
@@ -118,7 +116,7 @@ public class Bot extends ListenerAdapter {
                     for(int i = 21; i < 35; i++) {
                         weaponRanks[i - 21] = Integer.parseInt(temp[i]);
                     }
-                    playermap.put(temp[0], new Player(temp[0], new Stats(stats), new Growths(growths), weapon, new WeaponRanks(weaponRanks), skill, authorid));
+                    playermap.put(temp[0], new Player(temp[0], new Stats(stats), new Growths(growths), weapon, new WeaponRanks(weaponRanks), skill, pclass, authorid));
                     idmap.put(temp[0], authorid);
                     calculated.put(authorid, false);
                 }
@@ -135,7 +133,7 @@ public class Bot extends ListenerAdapter {
                     counter = 0;
                     continue;
                 }
-                for(int i = 0; i < 6; i++) {
+                for(int i = 0; i < Map.WIDTH; i++) {
                     map.grid[counter][i] = line.charAt(i);
                 }
                 counter++;
@@ -148,21 +146,24 @@ public class Bot extends ListenerAdapter {
         changelogEmbed.setTitle("Solace Changelog", null);
         changelogEmbed.setColor(Color.red);
         changelogEmbed.setDescription("The full changelog can be found on github.");
+        changelogEmbed.addField("v1.7: The Class Update", "- **Classes** have been added.\n"
+                + "\t- Classes can be chosen during registration by typing **w!register <username> <class>**.\n"
+                + "\t- Use **w!classes** for a list of currently implemented classes.\n"
+                + "\t- Classes affect **base stats**, **growths**, and **abilities to use weapons**.\n"
+                + "\t- Stratum enemies will now also be categorized into classes.\n"
+                + "\t- However, as a result, **all character data has been cleared**. Sorry.\n"
+                + "- The **Anima weapon triangle** has been added to combat.\n"
+                + "- Maps are now **15x15**, although larger maps are possible and will be randomly generated.\n"
+                + "- Hit chances no longer stack each time an attack is calculated.\n"
+                + "- An opponent with Fortune equipped no longer sets their own crit chance to 0.\n"
+                + "- Tags with no {args} fields no longer break when given extra arguments.", true);
+        changelogEmbed.addBlankField(true);
         changelogEmbed.addField("v1.6: The Tag Update", "- **Tags** have been added.\n"
                 + "\t- Tags can be used to incur a specific reaction from the bot.\n"
                 + "\t- Use **w!taghelp** for help on using tags.\n"
                 + "\t- **{args}**, **{args;n}** and **{user}** fields have been added.\n"
                 + "- **Adept** no longer activates on itself.\n"
                 + "- Fixed some naming issues in the combat log.", true);
-        changelogEmbed.addBlankField(true);
-        changelogEmbed.addField("v1.5: The Map Update", "- **Maps** have been added to boss battles.\n"
-                + "\t- During a boss battle, a 2-D map will display showing positions of allies and enemies.\n"
-                + "\t- Use **w!move <user> <location>** to move characters on the map. Locations are typed as `x,y`.\n"
-                + "\t- Enemies must be in range before you can attack them. The same goes for enemies.\n"
-                + "\t- All units have **2 Mov** and cannot move through walls.\n"
-                + "\t- Use **w!endturn <user>** to prematurely end a turn. Attacking or healing will automatically end the turn.\n"
-                + "- The attack command has been reduced to **w!attack**. Physical/magic is now based on your weapon.\n"
-                + "- The **Physic** staff has been added.", true);
         changelog = changelogEmbed.build();
                 
         EmbedBuilder help = new EmbedBuilder();
@@ -170,7 +171,8 @@ public class Bot extends ListenerAdapter {
         help.setColor(Color.blue);
         help.setDescription(globalDescription);
         help.addField("Commands", 
-                  "**w!register <username>** - Registers a user."
+                  "**w!register <username> [<class>]** - Registers a user."
+                + "\n**w!classes** - Shows a list of classes."
                 + "\n**w!select <user>** - Auto-fills <user>."
                 + "\n**w!stats <user>** - Displays stats."
                 + "\n**w!reroll <user>** - Rerolls stats."
@@ -233,10 +235,9 @@ public class Bot extends ListenerAdapter {
         categories.add(new BotSystem());
         categories.add(new BossBattle());
         categories.add(new Tags());
-        Utilities.init();
         
-        Boss boss1 = new Boss("Cyrus", new Stats(49, 49, 30, 20, 23, 20, 22, 30, 18, 25, 0), Weapon.SteelAxe, Skill.Luna, -1, 0);
-        Boss boss2 = new Boss("Troubadour", new Stats(48, 48, 20, 27, 31, 9, 28, 20, 30, 25, 0), Weapon.Mend, Skill.Pavise, -2, 0);
+        Boss boss1 = new Boss("Cyrus", new Stats(new int[] {49, 49, 30, 20, 23, 20, 22, 30, 18, 25, 0}), Weapon.SteelAxe, Skill.Luna, -1, PClass.Fighter, 0);
+        Boss boss2 = new Boss("Troubadour", new Stats(new int[] {48, 48, 20, 27, 31, 9, 28, 20, 30, 25, 0}), Weapon.Mend, Skill.Pavise, -2, PClass.Priest, 0);
         bosses.add(boss1);
         bosses.add(boss2);
         Bot.playermap.put("Cyrus", boss1);
@@ -251,7 +252,7 @@ public class Bot extends ListenerAdapter {
                 Object[] players = playermap.values().toArray();
                 for (Object player : players) {
                     Player p = (Player) player;
-                    if(p.username.contains("Fighter")) {        //don't put stratum enemies into config
+                    if(p.authorid < 0) {        //don't put stratum enemies/bosses into config
                         continue;
                     }
                     writer.write(p.toString());

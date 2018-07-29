@@ -28,7 +28,7 @@ public class AttackPreview extends Attack{
                         opponent = Utilities.generateStratumOpponent(level);
                         stratum = true;
                     }
-                    catch(Exception e) {
+                    catch(NumberFormatException e) {
                         throw new ValidationException("The stratum level was not recognized.");
                     }
                 }
@@ -104,7 +104,7 @@ class AttackConfirm extends Attack{
             Player pl = Bot.playermap.get(players[0]);
             if(Bot.playermap.containsKey(players[1]) && pl.stats.chp > 0) {    //stratum opponent did not die, player did not die
                 Player en = Bot.playermap.get(players[1]);
-                if(en.username.contains("Fighter")) {      //only stratum opponents have their own enemy turn
+                if(en.authorid < 0) {      //only stratum opponents have their own enemy turn
                     c.sendMessage(battleResult(en.authorid, false).build()).queue();
                     checkLevelUps(c);
                 }

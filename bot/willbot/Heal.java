@@ -21,7 +21,7 @@ public class Heal implements Category{
         }
         Utilities.checkPlayer(args.get(0), event.getMessage().getAuthor().getIdLong());
         user = Bot.playermap.get(args.get(0));
-        if(user.weapon.staff) {
+        if(user.weapon.weaponType == WeaponType.Staff) {
             if(!Bot.playermap.containsKey(args.get(1))) {
                 throw new ValidationException("You did not specify a valid user to heal.");
             }
