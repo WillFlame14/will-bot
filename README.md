@@ -2,6 +2,19 @@
 
 Changelog:
 
+v1.7: The Class Update
+- **Classes** have been added.
+    - Classes can be chosen during registration by typing **w!register <username> <class>**.
+    - Use **w!classes** for a list of currently implemented classes.
+    - Classes affect **base stats**, **growths**, and **abilities to use weapons**.
+    - Stratum enemies will now also be categorized into classes.
+    - However, as a result, **all character data has been cleared**. Sorry.
+- The **Anima weapon triangle** has been added to combat.
+- Maps are now **15x15**, although larger maps are possible and will be randomly generated.
+- Hit chances no longer stack each time an attack is calculated.
+- An opponent with Fortune equipped no longer sets their own crit chance to 0.
+- Tags with no {args} fields no longer break when given extra arguments.
+
 v1.6: The Tag Update
 - **Tags** have been added.
     - Tags can be used to incur a specific reaction from the bot.
