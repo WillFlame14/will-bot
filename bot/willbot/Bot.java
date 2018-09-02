@@ -22,13 +22,13 @@ public class Bot extends ListenerAdapter {
     static HashMap<Long, String> enemyattackusers = new HashMap<>();     //authorid --> player + " " + enemy
     static HashMap<String, Players> enemySave = new HashMap<>();      //player + " " + enemy --> saved player stats, saved enemy stats
     static LinkedList<Category> categories = new LinkedList<>();    
-    static MessageEmbed changelog, helpEmbed, attackHelpEmbed, tagHelpEmbed;           //these can be MessageEmbeds since they're only generated once
+    static MessageEmbed changelog, helpEmbed, attackHelpEmbed, tagHelpEmbed, rollHelpEmbed;           //these can be MessageEmbeds since they're only generated once
     static EmbedBuilder statsEmbed = new EmbedBuilder();        //not MessageEmbed since will vary each generation
     static HashMap<Long, Boolean> calculated = new HashMap<>();     //authorid --> calculated?
     static ArrayList<Boss> bosses = new ArrayList<>(10);        //list of bosses
     static ArrayList<Map> maps = new ArrayList<>(10);        //list of maps
     static HashMap<String, Tag> tags = new HashMap<>();      //list of tags
-    static String token, globalDescription = "Solace v1.7";
+    static String token, globalDescription = "Solace v1.8";
     
     public Bot() throws Exception {
         jda = new JDABuilder(AccountType.BOT).setToken(token).buildBlocking();
@@ -146,6 +146,13 @@ public class Bot extends ListenerAdapter {
         changelogEmbed.setTitle("Solace Changelog", null);
         changelogEmbed.setColor(Color.red);
         changelogEmbed.setDescription("The full changelog can be found on github.");
+        changelogEmbed.addField("v1.8: The DnD Update", "- The **w!roll** command has been overhauled.\n"
+                + "    - Dice of any size and number can be rolled (i.e. **w!roll 4d6**).\n"
+                + "    - Multiple types of dice can be rolled by inserting a '+' sign between dice.\n"
+                + "    - Checks can be performed (i.e. **w!roll 3d8>5**).\n"
+                + "    - **w!roll** will still roll a standard 6-sided die.\n"
+                + "    - Use **w!rollhelp** for more info.", true);
+        changelogEmbed.addBlankField(true);
         changelogEmbed.addField("v1.7: The Class Update", "- **Classes** have been added.\n"
                 + "\t- Classes can be chosen during registration by typing **w!register <username> <class>**.\n"
                 + "\t- Use **w!classes** for a list of currently implemented classes.\n"
@@ -157,13 +164,6 @@ public class Bot extends ListenerAdapter {
                 + "- Hit chances no longer stack each time an attack is calculated.\n"
                 + "- An opponent with Fortune equipped no longer sets their own crit chance to 0.\n"
                 + "- Tags with no {args} fields no longer break when given extra arguments.", true);
-        changelogEmbed.addBlankField(true);
-        changelogEmbed.addField("v1.6: The Tag Update", "- **Tags** have been added.\n"
-                + "\t- Tags can be used to incur a specific reaction from the bot.\n"
-                + "\t- Use **w!taghelp** for help on using tags.\n"
-                + "\t- **{args}**, **{args;n}** and **{user}** fields have been added.\n"
-                + "- **Adept** no longer activates on itself.\n"
-                + "- Fixed some naming issues in the combat log.", true);
         changelog = changelogEmbed.build();
                 
         EmbedBuilder help = new EmbedBuilder();
@@ -186,8 +186,9 @@ public class Bot extends ListenerAdapter {
                 + "\n**w!remove <user>** - Removes a skill.\n"
                 + "\n**w!attackhelp** - Shows help regarding attacks."
                 + "\n**w!taghelp** - Shows help regarding tags.\n"
-                + "\n**w!ping** - Pong!"
-                + "\n**w!roll** - Rolls a 6-sided die.", true);
+                + "\n**w!roll [<dice>]** - Rolls dice."
+                + "\n**w!rollhelp** - Shows help regarding dice rolling.\n"          
+                + "\n**w!ping** - Pong!", true);
         help.setFooter("Created by @WillFlame#5739", null);
         helpEmbed = help.build();        
         
@@ -226,6 +227,18 @@ public class Bot extends ListenerAdapter {
         tagHelp.setFooter("Created by @WillFlame#5739", null);
         tagHelpEmbed = tagHelp.build();
         
+        EmbedBuilder rollHelp = new EmbedBuilder();
+        rollHelp.setTitle("Roll Help", null);
+        rollHelp.setColor(Color.blue);
+        rollHelp.setDescription(globalDescription);
+        rollHelp.addField("Commands", 
+                  "\n**w!roll** - Rolls a 6-sided die."
+                + "\n**w!roll NdS** - Rolls an S-sided die N times."
+                + "\n**w!roll NdS+OdT** - Rolls an S-sided die N times, and then an O-sided die T times. Can be extended further."
+                + "\n**w!roll NdS>T** - Rolls an S-sided die N times, compares with T to count successes. Works with <.", true);
+        rollHelp.setFooter("Created by @WillFlame#5739", null);
+        rollHelpEmbed = rollHelp.build();
+        
         categories.add(Skill.NA);
         categories.add(new Stats());
         categories.add(new AttackPreview());
@@ -235,6 +248,7 @@ public class Bot extends ListenerAdapter {
         categories.add(new BotSystem());
         categories.add(new BossBattle());
         categories.add(new Tags());
+        categories.add(new Dice());
         
         Boss boss1 = new Boss("Cyrus", new Stats(new int[] {49, 49, 30, 20, 23, 20, 22, 30, 18, 25, 0}), Weapon.SteelAxe, Skill.Luna, -1, PClass.Fighter, 0);
         Boss boss2 = new Boss("Troubadour", new Stats(new int[] {48, 48, 20, 27, 31, 9, 28, 20, 30, 25, 0}), Weapon.Mend, Skill.Pavise, -2, PClass.Priest, 0);

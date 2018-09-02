@@ -14,7 +14,6 @@ public class BotSystem implements Category{
             case "w!help":
             case "w!ping":
             case "w!register":
-            case "w!roll":
             case "w!say":
             case "w!select":
             case "w!users":
@@ -47,9 +46,6 @@ public class BotSystem implements Category{
                 break;
             case "w!ping":
                 c.sendMessage("Pong! Time: " + Utilities.bold(Bot.jda.getPing() + " ms")).queue();
-                break;
-            case "w!roll":
-                c.sendMessage("🎲You rolled a: " + (int)((Math.random() * 6) + 1)).queue();
                 break;
             case "w!register":
                 if(!args.isEmpty()) {
