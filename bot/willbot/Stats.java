@@ -1,6 +1,7 @@
 package bot.willbot;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.Arrays;
 import net.dv8tion.jda.core.entities.MessageChannel;
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
@@ -143,6 +144,22 @@ public class Stats implements Category{
         stats[8] = lck;
         stats[9] = lvl;
         stats[10] = xp;
+        return stats;
+    }
+    
+    public LinkedList toLinkedList() {
+        LinkedList stats = new LinkedList<>();
+        stats.add(chp);
+        stats.add(thp);
+        stats.add(str);
+        stats.add(mag);
+        stats.add(spd);
+        stats.add(def);
+        stats.add(res);
+        stats.add(skl);
+        stats.add(lck);
+        stats.add(lvl);
+        stats.add(xp);
         return stats;
     }
 }
@@ -288,6 +305,19 @@ class Growths{
         growths[5] = res;
         growths[6] = skl;
         growths[7] = lck;
+        return growths;
+    }
+    
+    public LinkedList toLinkedList() {
+        LinkedList growths = new LinkedList<>();
+        growths.add(hp);
+        growths.add(str);
+        growths.add(mag);
+        growths.add(spd);
+        growths.add(def);
+        growths.add(res);
+        growths.add(skl);
+        growths.add(lck);
         return growths;
     }
 }
