@@ -10,7 +10,10 @@ import net.dv8tion.jda.core.hooks.ListenerAdapter;
 import java.awt.Color;
 import java.util.*;
 import java.io.*;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
 import net.dv8tion.jda.core.entities.MessageEmbed;
+import org.json.simple.JSONValue;
 
 public class Bot extends ListenerAdapter {
     static JDA jda;
@@ -31,7 +34,7 @@ public class Bot extends ListenerAdapter {
     static String token, globalDescription = "Solace v1.8";
     
     public Bot() throws Exception {
-        jda = new JDABuilder(AccountType.BOT).setToken(token).buildBlocking();
+        jda = new JDABuilder(AccountType.BOT).setToken("Mjk1MzY2MDI4ODgyNjA4MTQ4.DnyZeg.c-KUkQvixTwJZuo1cbIvKo4JDhk").buildBlocking();
         jda.addEventListener(this);
     }
 
@@ -260,18 +263,31 @@ public class Bot extends ListenerAdapter {
     
     public static void update() {
         try {
-            try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("config.txt"), "utf-8"))) {
-                writer.write(token);
-                writer.newLine();
+            try (FileWriter writer = new FileWriter("config.json")) {
+                JSONObject jsonObject = new JSONObject();
+                jsonObject.put("token", token);
+                
+                LinkedHashMap characters = new LinkedHashMap();
                 Object[] players = playermap.values().toArray();
                 for (Object player : players) {
+                    
+                    
                     Player p = (Player) player;
                     if(p.authorid < 0) {        //don't put stratum enemies/bosses into config
                         continue;
                     }
-                    writer.write(p.toString());
-                    writer.newLine();
+                    LinkedHashMap attributes = new LinkedHashMap();
+                    attributes.put("stats", p.stats.toLinkedList());
+                    attributes.put("growths", p.growths.toLinkedList());
+                    attributes.put("weapon", p.weapon);
+                    attributes.put("skill", p.skill);
+                    attributes.put("userid", p.authorid);
+                    attributes.put("class", p.pclass);
+                    
+                    characters.put(p.username, attributes);
                 }
+                jsonObject.put("characters", characters);
+                
                 Object[] defaults1 = defaultPlayer.keySet().toArray();
                 Object[] defaults2 = defaultPlayer.values().toArray();
                 for(int i = 0; i < defaults1.length; i++) {
