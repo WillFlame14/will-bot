@@ -34,7 +34,7 @@ public class Bot extends ListenerAdapter {
     static String token, globalDescription = "Solace v1.8";
     
     public Bot() throws Exception {
-        jda = new JDABuilder(AccountType.BOT).setToken("Mjk1MzY2MDI4ODgyNjA4MTQ4.DnyZeg.c-KUkQvixTwJZuo1cbIvKo4JDhk").buildBlocking();
+        jda = new JDABuilder(AccountType.BOT).setToken(token).buildBlocking();
         jda.addEventListener(this);
     }
 
