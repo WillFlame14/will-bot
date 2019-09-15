@@ -1,5 +1,45 @@
 # will-bot
 
+A bot that plays a text-only version of Fire Emblem (also works with friends). 
+
+**Commands**
+
+w!register <username> [<class>] - Registers a user.
+    
+w!classes - Shows a list of classes.
+
+w!select <user> - Auto-fills <user>.
+    
+w!stats <user> - Displays stats.
+    
+w!reroll <user> - Rerolls stats.
+    
+w!weaponranks <user> - Displays weapon ranks.
+    
+w!users - Displays a list of users.
+
+w!weapons - Shows a list of weapons.
+
+w!equip <user> <weapon> - Equips a weapon.
+    
+w!unequip <user> - Unequips a weapon.
+    
+w!skills - Shows a list of skills.
+
+w!assign <user> <skill> - Assigns a skill.
+
+w!remove <user> - Removes a skill.
+
+w!attackhelp - Shows help regarding attacks.
+
+w!taghelp - Shows help regarding tags.
+
+w!roll [<dice>] - Rolls dice.
+
+w!rollhelp - Shows help regarding dice rolling.
+
+w!ping - Pong!
+
 Changelog:
 
 v1.7: The Class Update
